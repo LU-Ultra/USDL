@@ -71,12 +71,12 @@ const RateControls: React.FC = () => {
   const [isEditingSR, setIsEditingSR] = useState<boolean>(false);
 
   const { data: savingsRate } = useScaffoldReadContract({
-    contractName: "MyUSDStaking",
+    contractName: "USDLStaking",
     functionName: "savingsRate",
   });
 
   const { data: borrowRate } = useScaffoldReadContract({
-    contractName: "MyUSDEngine",
+    contractName: "USDLEngine",
     functionName: "borrowRate",
   });
 

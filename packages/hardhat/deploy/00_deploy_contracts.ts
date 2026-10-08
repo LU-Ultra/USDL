@@ -3,7 +3,7 @@ import { parseEther, getContractAddress } from "viem";
 import { fetchPriceFromUniswap } from "../scripts/fetchPriceFromUniswap.js";
 
 /**
- * Deploys "RateController", "MyUSD", "DEX", "Oracle", "MyUSDStaking" and "MyUSDEngine" using the deployer account.
+ * Deploys "RateController", "USDL", "DEX", "Oracle", "USDLStaking" and "USDLEngine" using the deployer account.
  *
  * On localhost, the deployer account is the one that comes with Hardhat, which is already funded.
  *
@@ -33,12 +33,12 @@ export default deployScript(
     // Calculate future addresses based on nonce
     const futureStakingAddress = getContractAddress({
       from: deployer,
-      nonce: BigInt(deployerNonce + 4), // +4 because it will be our fifth deployment (after MyUSD, DEX, Oracle, RateController)
+      nonce: BigInt(deployerNonce + 4), // +4 because it will be our fifth deployment (after USDL, DEX, Oracle, RateController)
     });
 
     const futureEngineAddress = getContractAddress({
       from: deployer,
-      nonce: BigInt(deployerNonce + 5), // +5 because it will be our sixth deployment (after MyUSD, DEX, Oracle, Staking, RateController)
+      nonce: BigInt(deployerNonce + 5), // +5 because it will be our sixth deployment (after USDL, DEX, Oracle, Staking, RateController)
     });
 
     const rateController = await env.deploy("RateController", {
@@ -47,9 +47,9 @@ export default deployScript(
       args: [futureEngineAddress, futureStakingAddress],
     });
 
-    const stablecoin = await env.deploy("MyUSD", {
+    const stablecoin = await env.deploy("USDL", {
       account: deployer,
-      artifact: artifacts.MyUSD,
+      artifact: artifacts.USDL,
       args: [futureEngineAddress, futureStakingAddress],
     });
 
@@ -65,16 +65,16 @@ export default deployScript(
       args: [DEX.address, ethPrice],
     });
 
-    const staking = await env.deploy("MyUSDStaking", {
+    const staking = await env.deploy("USDLStaking", {
       account: deployer,
-      artifact: artifacts.MyUSDStaking,
+      artifact: artifacts.USDLStaking,
       args: [stablecoin.address, futureEngineAddress, rateController.address],
     });
 
     // Finally deploy the engine at the predicted address
-    const engine = await env.deploy("MyUSDEngine", {
+    const engine = await env.deploy("USDLEngine", {
       account: deployer,
-      artifact: artifacts.MyUSDEngine,
+      artifact: artifacts.USDLEngine,
       args: [oracle.address, stablecoin.address, staking.address, rateController.address],
     });
 
@@ -99,7 +99,7 @@ export default deployScript(
       const ethCollateralAmount = parseEther("10000000000000000000");
       // Set initial price of stablecoin (as determined by DEX liquidity)
       const ethDEXAmount = parseEther("10000000");
-      const myUSDAmount = ethPrice * 10000000n;
+      const usdlAmount = ethPrice * 10000000n;
 
       // Borrow stablecoins
       await env.execute(engine, {
@@ -109,8 +109,8 @@ export default deployScript(
         account: deployer,
       });
       await env.execute(engine, {
-        functionName: "mintMyUSD",
-        args: [myUSDAmount],
+        functionName: "mintUSDL",
+        args: [usdlAmount],
         account: deployer,
       });
 
@@ -119,16 +119,16 @@ export default deployScript(
         args: [deployer],
       })) as bigint;
       // Don't add DEX liquidity if the deployer account doesn't have the stablecoins
-      if (confirmedBalance === myUSDAmount) {
+      if (confirmedBalance === usdlAmount) {
         // Approve DEX to use tokens and initialize DEX
         await env.execute(stablecoin, {
           functionName: "approve",
-          args: [DEX.address, myUSDAmount],
+          args: [DEX.address, usdlAmount],
           account: deployer,
         });
         await env.execute(DEX, {
           functionName: "init",
-          args: [myUSDAmount],
+          args: [usdlAmount],
           value: ethDEXAmount,
           account: deployer,
         });
@@ -149,5 +149,5 @@ export default deployScript(
       }
     }
   },
-  { tags: ["MyUSDEngine"] },
+  { tags: ["USDLEngine"] },
 );

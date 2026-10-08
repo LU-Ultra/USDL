@@ -1,2 +1,2 @@
-export const tokenName = "MyUSD";
+export const tokenName = "USDL";
 export const collateralRatio = 150;

@@ -2,9 +2,9 @@
 pragma solidity ^0.8.20;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
-import "./MyUSD.sol";
+import "./USDL.sol";
 import "./Oracle.sol";
-import "./MyUSDStaking.sol";
+import "./USDLStaking.sol";
 
 error Engine__InvalidAmount();
 error Engine__UnsafePositionRatio();
@@ -14,15 +14,15 @@ error Engine__NotRateController();
 error Engine__InsufficientCollateral();
 error Engine__TransferFailed();
 
-contract MyUSDEngine is Ownable {
+contract USDLEngine is Ownable {
     uint256 private constant COLLATERAL_RATIO = 150; // 150% collateralization required
     uint256 private constant LIQUIDATOR_REWARD = 10; // 10% reward for liquidators
     uint256 private constant SECONDS_PER_YEAR = 365 days;
     uint256 private constant PRECISION = 1e18;
 
-    MyUSD private i_myUSD;
+    USDL private i_usdl;
     Oracle private i_oracle;
-    MyUSDStaking private i_staking;
+    USDLStaking private i_staking;
     address private i_rateController;
 
     uint256 public borrowRate; // Annual interest rate for borrowers in basis points (1% = 100)
@@ -30,7 +30,7 @@ contract MyUSDEngine is Ownable {
     // Total debt shares in the pool
     uint256 public totalDebtShares;
 
-    // Exchange rate between debt shares and MyUSD (1e18 precision)
+    // Exchange rate between debt shares and USDL (1e18 precision)
     uint256 public debtExchangeRate;
     uint256 public lastUpdateTime;
 
@@ -57,13 +57,13 @@ contract MyUSDEngine is Ownable {
 
     constructor(
         address _oracle,
-        address _myUSDAddress,
+        address _usdlAddress,
         address _stakingAddress,
         address _rateController
     ) Ownable(msg.sender) {
         i_oracle = Oracle(_oracle);
-        i_myUSD = MyUSD(_myUSDAddress);
-        i_staking = MyUSDStaking(_stakingAddress);
+        i_usdl = USDL(_usdlAddress);
+        i_staking = USDLStaking(_stakingAddress);
         i_rateController = _rateController;
         lastUpdateTime = block.timestamp;
         debtExchangeRate = PRECISION; // 1:1 initially
@@ -79,16 +79,16 @@ contract MyUSDEngine is Ownable {
 
     function _accrueInterest() internal {}
 
-    function _getMyUSDToShares(uint256 amount) internal view returns (uint256) {}
+    function _getUSDLToShares(uint256 amount) internal view returns (uint256) {}
 
-    // Checkpoint 4: Minting MyUSD & Position Health
+    // Checkpoint 4: Minting USDL & Position Health
     function getCurrentDebtValue(address user) public view returns (uint256) {}
 
     function calculatePositionRatio(address user) public view returns (uint256) {}
 
     function _validatePosition(address user) internal view {}
 
-    function mintMyUSD(uint256 mintAmount) public {}
+    function mintUSDL(uint256 mintAmount) public {}
 
     // Checkpoint 5: Accruing Interest & Managing Borrow Rates
     function setBorrowRate(uint256 newRate) external onlyRateController {}

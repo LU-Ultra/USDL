@@ -3,9 +3,9 @@ pragma solidity ^0.8.0;
 
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/utils/ReentrancyGuard.sol";
-import "./MyUSD.sol";
+import "./USDL.sol";
 
-interface IMyUSDEngine {
+interface IUSDLEngine {
     function borrowRate() external view returns (uint256);
 
     function setBorrowRate(uint256 newRate) external;
@@ -18,15 +18,15 @@ error Staking__InvalidSavingsRate();
 error Staking__EngineNotSet();
 error Staking__NotRateController();
 
-contract MyUSDStaking is Ownable, ReentrancyGuard {
-    MyUSD public immutable myUSD;
-    IMyUSDEngine public engine;
+contract USDLStaking is Ownable, ReentrancyGuard {
+    USDL public immutable usdl;
+    IUSDLEngine public engine;
     address private i_rateController;
 
     // Total shares in the pool
     uint256 public totalShares;
 
-    // Exchange rate between shares and MyUSD (1e18 precision)
+    // Exchange rate between shares and USDL (1e18 precision)
     uint256 public exchangeRate;
 
     // Last update timestamp
@@ -51,9 +51,9 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
         _;
     }
 
-    constructor(address _myUSD, address _engine, address _rateController) Ownable(msg.sender) {
-        myUSD = MyUSD(_myUSD);
-        engine = IMyUSDEngine(_engine);
+    constructor(address _usdl, address _engine, address _rateController) Ownable(msg.sender) {
+        usdl = USDL(_usdl);
+        engine = IUSDLEngine(_engine);
         i_rateController = _rateController;
         exchangeRate = PRECISION; // 1:1 initially
         lastUpdateTime = block.timestamp;
@@ -101,16 +101,16 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
         userShares[msg.sender] += shares;
         totalShares += shares;
 
-        if (myUSD.balanceOf(msg.sender) < amount) {
-            revert MyUSD__InsufficientBalance();
+        if (usdl.balanceOf(msg.sender) < amount) {
+            revert USDL__InsufficientBalance();
         }
 
-        if (myUSD.allowance(msg.sender, address(this)) < amount) {
-            revert MyUSD__InsufficientAllowance();
+        if (usdl.allowance(msg.sender, address(this)) < amount) {
+            revert USDL__InsufficientAllowance();
         }
 
         // Transfer tokens to contract
-        bool success = myUSD.transferFrom(msg.sender, address(this), amount);
+        bool success = usdl.transferFrom(msg.sender, address(this), amount);
         if (!success) revert Staking__TransferFailed();
 
         emit Staked(msg.sender, amount, shares);
@@ -122,16 +122,16 @@ contract MyUSDStaking is Ownable, ReentrancyGuard {
         uint256 shareAmount = userShares[msg.sender];
         if (shareAmount == 0) revert Staking__InsufficientBalance();
 
-        // Calculate MyUSD amount based on current exchange rate
+        // Calculate USDL amount based on current exchange rate
         uint256 amount = getSharesValue(shareAmount);
 
         // Update user's shares
         userShares[msg.sender] = 0;
 
         // Transfer tokens to user
-        bool success = myUSD.transfer(msg.sender, amount);
+        bool success = usdl.transfer(msg.sender, amount);
         if (!success) revert Staking__TransferFailed();
-        // Now update total shares since MyUSD uses this to determine this contract's token balance
+        // Now update total shares since USDL uses this to determine this contract's token balance
         totalShares -= shareAmount;
 
         emit Withdrawn(msg.sender, amount, shareAmount);

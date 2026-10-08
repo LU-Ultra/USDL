@@ -7,7 +7,7 @@ import { useScaffoldEventHistory, useScaffoldReadContract } from "~~/hooks/scaff
 
 const StakerRow = ({ staker, connectedAddress }: { staker: string; connectedAddress: string }) => {
   const { data: stakedAmount } = useScaffoldReadContract({
-    contractName: "MyUSDStaking",
+    contractName: "USDLStaking",
     functionName: "getBalance",
     args: [staker],
   });
@@ -26,7 +26,7 @@ const StakersStable = () => {
   const { address: connectedAddress } = useAccount();
   const [stakers, setStakers] = useState<string[]>([]);
   const { data: events, isLoading } = useScaffoldEventHistory({
-    contractName: "MyUSDStaking",
+    contractName: "USDLStaking",
     eventName: "Staked",
     watch: true,
     blockData: false,
@@ -50,13 +50,13 @@ const StakersStable = () => {
 
   return (
     <div className="card bg-base-100 w-full shadow-xl indicator">
-      <TooltipInfo top={3} right={3} infoText="Monitor all active stakers and their MyUSD token contributions" />
+      <TooltipInfo top={3} right={3} infoText="Monitor all active stakers and their USDL token contributions" />
       <div className="overflow-x-auto">
         <table className="table">
           <thead>
             <tr>
               <th>Address</th>
-              <th>Staked (MyUSD)</th>
+              <th>Staked (USDL)</th>
             </tr>
           </thead>
           <tbody>

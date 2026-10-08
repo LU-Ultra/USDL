@@ -1,10 +1,10 @@
 import { network } from "hardhat";
-import type { DEX, RateController, MyUSDStaking, MyUSDEngine, Oracle } from "../types/ethers-contracts/index.js";
+import type { DEX, RateController, USDLStaking, USDLEngine, Oracle } from "../types/ethers-contracts/index.js";
 import {
   DEX__factory,
   RateController__factory,
-  MyUSDStaking__factory,
-  MyUSDEngine__factory,
+  USDLStaking__factory,
+  USDLEngine__factory,
   Oracle__factory,
 } from "../types/ethers-contracts/index.js";
 import { createDeploymentReader } from "./deployments.js";
@@ -150,8 +150,8 @@ async function main() {
     getDeployedAddress("RateController"),
     deployer,
   );
-  const engine: MyUSDEngine = MyUSDEngine__factory.connect(getDeployedAddress("MyUSDEngine"), deployer);
-  const staking: MyUSDStaking = MyUSDStaking__factory.connect(getDeployedAddress("MyUSDStaking"), deployer);
+  const engine: USDLEngine = USDLEngine__factory.connect(getDeployedAddress("USDLEngine"), deployer);
+  const staking: USDLStaking = USDLStaking__factory.connect(getDeployedAddress("USDLStaking"), deployer);
   const oracle: Oracle = Oracle__factory.connect(getDeployedAddress("Oracle"), deployer);
   const ethPrice = await oracle.getETHUSDPrice();
 

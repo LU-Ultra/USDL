@@ -11,18 +11,18 @@ const StakeOperations = () => {
   const [stakeAmount, setStakeAmount] = useState("");
   const [withdrawDisabled, setWithdrawDisabled] = useState(true);
 
-  const { writeContractAsync: writeMyUSDContract } = useScaffoldWriteContract({
-    contractName: "MyUSD",
+  const { writeContractAsync: writeUSDLContract } = useScaffoldWriteContract({
+    contractName: "USDL",
   });
 
-  const { data: myUSDCStakingContract } = useScaffoldContract({ contractName: "MyUSDStaking" });
+  const { data: usdlCStakingContract } = useScaffoldContract({ contractName: "USDLStaking" });
 
   const { writeContractAsync: writeStakingContract } = useScaffoldWriteContract({
-    contractName: "MyUSDStaking",
+    contractName: "USDLStaking",
   });
 
   const { data: shareBalance } = useScaffoldReadContract({
-    contractName: "MyUSDStaking",
+    contractName: "USDLStaking",
     functionName: "userShares",
     args: [address],
   });
@@ -32,14 +32,14 @@ const StakeOperations = () => {
   }, [shareBalance]);
 
   const handleStake = async () => {
-    if (!myUSDCStakingContract) {
-      notification.error("MyUSDStaking contract not found");
+    if (!usdlCStakingContract) {
+      notification.error("USDLStaking contract not found");
       return;
     }
     try {
-      await writeMyUSDContract({
+      await writeUSDLContract({
         functionName: "approve",
-        args: [myUSDCStakingContract.address, stakeAmount ? parseEther(stakeAmount) : 0n],
+        args: [usdlCStakingContract.address, stakeAmount ? parseEther(stakeAmount) : 0n],
       });
 
       await writeStakingContract({
@@ -64,9 +64,9 @@ const StakeOperations = () => {
 
   return (
     <div className="card bg-base-100 w-96 shadow-xl indicator">
-      <TooltipInfo top={3} right={3} infoText="Use these controls to stake or unstake MyUSD" />
+      <TooltipInfo top={3} right={3} infoText="Use these controls to stake or unstake USDL" />
       <div className="card-body">
-        <h2 className="card-title">Stake Operations (MyUSD)</h2>
+        <h2 className="card-title">Stake Operations (USDL)</h2>
 
         <div className="form-control">
           <label className="label">

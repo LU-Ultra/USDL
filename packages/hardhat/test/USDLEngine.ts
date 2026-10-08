@@ -4,7 +4,7 @@
 
 import { network } from "hardhat";
 import { expect } from "chai";
-import type { MyUSD, DEX, MyUSDEngine, Oracle, MyUSDStaking, RateController } from "../types/ethers-contracts/index.js";
+import type { USDL, DEX, USDLEngine, Oracle, USDLStaking, RateController } from "../types/ethers-contracts/index.js";
 import type { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/types";
 import { fetchPriceFromUniswap } from "../scripts/fetchPriceFromUniswap.js";
 
@@ -12,11 +12,11 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
   let ethers: Awaited<ReturnType<typeof network.create>>["ethers"];
 
   const contractAddress = process.env.CONTRACT_ADDRESS;
-  let myUSDToken: MyUSD;
+  let usdlToken: USDL;
   let dex: DEX;
-  let myUSDEngine: MyUSDEngine;
+  let usdlEngine: USDLEngine;
   let oracle: Oracle;
-  let staking: MyUSDStaking;
+  let staking: USDLStaking;
   let rateController: RateController;
   let owner: HardhatEthersSigner;
   let user1: HardhatEthersSigner;
@@ -34,9 +34,9 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     // For SRE Auto-grader - use the the downloaded contract instead of default contract
     let contractArtifact = "";
     if (contractAddress) {
-      contractArtifact = `contracts/download-${contractAddress}.sol:MyUSDEngine`;
+      contractArtifact = `contracts/download-${contractAddress}.sol:USDLEngine`;
     } else {
-      contractArtifact = "contracts/MyUSDEngine.sol:MyUSDEngine";
+      contractArtifact = "contracts/USDLEngine.sol:USDLEngine";
     }
 
     // Get the deployer's current nonce
@@ -60,13 +60,13 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       futureStakingAddress,
     )) as unknown as RateController;
 
-    // Deploy MyUSD with future addresses
-    const MyUSDFactory = await ethers.getContractFactory("MyUSD");
-    myUSDToken = (await MyUSDFactory.deploy(futureEngineAddress, futureStakingAddress)) as unknown as MyUSD;
+    // Deploy USDL with future addresses
+    const USDLFactory = await ethers.getContractFactory("USDL");
+    usdlToken = (await USDLFactory.deploy(futureEngineAddress, futureStakingAddress)) as unknown as USDL;
 
     // Deploy DEX
     const DEXFactory = await ethers.getContractFactory("DEX");
-    dex = (await DEXFactory.deploy(await myUSDToken.getAddress())) as unknown as DEX;
+    dex = (await DEXFactory.deploy(await usdlToken.getAddress())) as unknown as DEX;
 
     const ethPrice = await fetchPriceFromUniswap();
 
@@ -74,78 +74,78 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     const OracleFactory = await ethers.getContractFactory("Oracle");
     oracle = (await OracleFactory.deploy(await dex.getAddress(), ethPrice)) as unknown as Oracle;
 
-    // Deploy MyUSDStaking
-    const MyUSDStakingFactory = await ethers.getContractFactory("MyUSDStaking");
-    staking = (await MyUSDStakingFactory.deploy(
-      await myUSDToken.getAddress(),
+    // Deploy USDLStaking
+    const USDLStakingFactory = await ethers.getContractFactory("USDLStaking");
+    staking = (await USDLStakingFactory.deploy(
+      await usdlToken.getAddress(),
       futureEngineAddress,
       await rateController.getAddress(),
-    )) as unknown as MyUSDStaking;
+    )) as unknown as USDLStaking;
 
-    // Finally deploy the MyUSDEngine at the predicted address
-    const MyUSDEngineFactory = await ethers.getContractFactory(contractArtifact);
-    myUSDEngine = (await MyUSDEngineFactory.deploy(
+    // Finally deploy the USDLEngine at the predicted address
+    const USDLEngineFactory = await ethers.getContractFactory(contractArtifact);
+    usdlEngine = (await USDLEngineFactory.deploy(
       await oracle.getAddress(),
-      await myUSDToken.getAddress(),
+      await usdlToken.getAddress(),
       await staking.getAddress(),
       await rateController.getAddress(),
-    )) as unknown as MyUSDEngine;
+    )) as unknown as USDLEngine;
 
     // Verify addresses match predictions
-    expect(await myUSDEngine.getAddress()).to.equal(futureEngineAddress);
+    expect(await usdlEngine.getAddress()).to.equal(futureEngineAddress);
     expect(await staking.getAddress()).to.equal(futureStakingAddress);
 
     const ethCollateralAmount = ethers.parseEther("5000");
     // Initialize DEX with liquidity
     const ethDEXAmount = ethers.parseEther("1000");
-    const myUSDAmount = (await oracle.getETHUSDPrice()) * 1000n;
+    const usdlAmount = (await oracle.getETHUSDPrice()) * 1000n;
 
-    // Add collateral and mint MyUSD for DEX initialization
-    await myUSDEngine.addCollateral({ value: ethCollateralAmount });
-    await myUSDEngine.mintMyUSD(myUSDAmount);
+    // Add collateral and mint USDL for DEX initialization
+    await usdlEngine.addCollateral({ value: ethCollateralAmount });
+    await usdlEngine.mintUSDL(usdlAmount);
 
-    const confirmedBalance = await myUSDToken.balanceOf(owner.address);
+    const confirmedBalance = await usdlToken.balanceOf(owner.address);
     // Don't add DEX liquidity if the deployer account doesn't have the stablecoins
-    if (confirmedBalance == myUSDAmount) {
+    if (confirmedBalance == usdlAmount) {
       // Approve DEX to use tokens and initialize DEX
-      await myUSDToken.approve(dex.target, myUSDAmount);
-      await dex.init(myUSDAmount, { value: ethDEXAmount });
+      await usdlToken.approve(dex.target, usdlAmount);
+      await dex.init(usdlAmount, { value: ethDEXAmount });
     }
   });
 
   describe("Deployment", function () {
     it("Should deploy with correct initial state", async function () {
-      expect(await myUSDToken.owner()).to.equal(owner.address);
+      expect(await usdlToken.owner()).to.equal(owner.address);
       expect(await dex.totalLiquidity()).to.be.gt(0);
-      expect(await oracle.getETHMyUSDPrice()).to.be.gt(0);
-      expect(await myUSDEngine.borrowRate()).to.equal(0);
+      expect(await oracle.getETHUSDLPrice()).to.be.gt(0);
+      expect(await usdlEngine.borrowRate()).to.equal(0);
       expect(await staking.savingsRate()).to.equal(0);
     });
   });
 
   describe("Collateral Operations", function () {
     it("Should allow adding collateral", async function () {
-      await myUSDEngine.connect(user1).addCollateral({ value: collateralAmount });
-      expect(await myUSDEngine.s_userCollateral(user1.address)).to.equal(collateralAmount);
+      await usdlEngine.connect(user1).addCollateral({ value: collateralAmount });
+      expect(await usdlEngine.s_userCollateral(user1.address)).to.equal(collateralAmount);
     });
 
     it("Should emit CollateralAdded event", async function () {
-      await expect(myUSDEngine.connect(user1).addCollateral({ value: collateralAmount }))
-        .to.emit(myUSDEngine, "CollateralAdded")
-        .withArgs(user1.address, collateralAmount, await oracle.getETHMyUSDPrice());
+      await expect(usdlEngine.connect(user1).addCollateral({ value: collateralAmount }))
+        .to.emit(usdlEngine, "CollateralAdded")
+        .withArgs(user1.address, collateralAmount, await oracle.getETHUSDLPrice());
     });
 
     it("Should allow withdrawing collateral when no debt", async function () {
-      await myUSDEngine.connect(user1).addCollateral({ value: collateralAmount });
-      expect(await myUSDEngine.s_userCollateral(user1.address)).to.be.gt(0n);
-      await myUSDEngine.connect(user1).withdrawCollateral(collateralAmount);
-      expect(await myUSDEngine.s_userCollateral(user1.address)).to.equal(0);
+      await usdlEngine.connect(user1).addCollateral({ value: collateralAmount });
+      expect(await usdlEngine.s_userCollateral(user1.address)).to.be.gt(0n);
+      await usdlEngine.connect(user1).withdrawCollateral(collateralAmount);
+      expect(await usdlEngine.s_userCollateral(user1.address)).to.equal(0);
     });
 
     it("Should prevent withdrawing more than deposited", async function () {
-      await myUSDEngine.connect(user1).addCollateral({ value: collateralAmount });
-      await expect(myUSDEngine.connect(user1).withdrawCollateral(collateralAmount * 2n)).to.be.revertedWithCustomError(
-        myUSDEngine,
+      await usdlEngine.connect(user1).addCollateral({ value: collateralAmount });
+      await expect(usdlEngine.connect(user1).withdrawCollateral(collateralAmount * 2n)).to.be.revertedWithCustomError(
+        usdlEngine,
         "Engine__InsufficientCollateral",
       );
     });
@@ -153,63 +153,63 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
   describe("Borrowing Operations", function () {
     beforeEach(async function () {
-      await myUSDEngine.connect(user1).addCollateral({ value: collateralAmount });
+      await usdlEngine.connect(user1).addCollateral({ value: collateralAmount });
     });
 
     it("Should allow borrowing when sufficiently collateralized", async function () {
-      expect(await myUSDToken.balanceOf(user1.address)).to.equal(0n);
-      await myUSDEngine.connect(user1).mintMyUSD(borrowAmount);
-      expect(await myUSDEngine.s_userDebtShares(user1.address)).to.equal(borrowAmount);
-      expect(await myUSDToken.balanceOf(user1.address)).to.equal(borrowAmount);
+      expect(await usdlToken.balanceOf(user1.address)).to.equal(0n);
+      await usdlEngine.connect(user1).mintUSDL(borrowAmount);
+      expect(await usdlEngine.s_userDebtShares(user1.address)).to.equal(borrowAmount);
+      expect(await usdlToken.balanceOf(user1.address)).to.equal(borrowAmount);
     });
 
     it("Should prevent borrowing when insufficiently collateralized", async function () {
       const tooMuchBorrow = (await oracle.getETHUSDPrice()) * collateralAmount;
-      await expect(myUSDEngine.connect(user1).mintMyUSD(tooMuchBorrow)).to.be.revertedWithCustomError(
-        myUSDEngine,
+      await expect(usdlEngine.connect(user1).mintUSDL(tooMuchBorrow)).to.be.revertedWithCustomError(
+        usdlEngine,
         "Engine__UnsafePositionRatio",
       );
     });
 
     it("Should emit DebtSharesMinted event", async function () {
-      await expect(myUSDEngine.connect(user1).mintMyUSD(borrowAmount))
-        .to.emit(myUSDEngine, "DebtSharesMinted")
+      await expect(usdlEngine.connect(user1).mintUSDL(borrowAmount))
+        .to.emit(usdlEngine, "DebtSharesMinted")
         .withArgs(user1.address, borrowAmount, borrowAmount);
     });
   });
 
   describe("Repayment Operations", function () {
     beforeEach(async function () {
-      await myUSDEngine.connect(user1).addCollateral({ value: collateralAmount });
-      await myUSDEngine.connect(user1).mintMyUSD(borrowAmount);
+      await usdlEngine.connect(user1).addCollateral({ value: collateralAmount });
+      await usdlEngine.connect(user1).mintUSDL(borrowAmount);
     });
 
     it("Should allow repaying borrowed amount", async function () {
-      expect(await myUSDEngine.s_userDebtShares(user1.address)).to.be.gt(0n);
-      await myUSDToken.connect(user1).approve(myUSDEngine.target, borrowAmount);
-      await myUSDEngine.connect(user1).repayUpTo(borrowAmount);
-      expect(await myUSDEngine.s_userDebtShares(user1.address)).to.equal(0);
+      expect(await usdlEngine.s_userDebtShares(user1.address)).to.be.gt(0n);
+      await usdlToken.connect(user1).approve(usdlEngine.target, borrowAmount);
+      await usdlEngine.connect(user1).repayUpTo(borrowAmount);
+      expect(await usdlEngine.s_userDebtShares(user1.address)).to.equal(0);
     });
 
     it("Should allow repaying less than full borrowed amount", async function () {
-      await myUSDToken.connect(user1).approve(myUSDEngine.target, borrowAmount / 2n);
-      await myUSDEngine.connect(user1).repayUpTo(borrowAmount / 2n);
-      expect(await myUSDEngine.s_userDebtShares(user1.address)).to.equal(borrowAmount / 2n);
+      await usdlToken.connect(user1).approve(usdlEngine.target, borrowAmount / 2n);
+      await usdlEngine.connect(user1).repayUpTo(borrowAmount / 2n);
+      expect(await usdlEngine.s_userDebtShares(user1.address)).to.equal(borrowAmount / 2n);
     });
 
     it("Should allow repaying more than borrowed", async function () {
-      expect(await myUSDEngine.s_userDebtShares(user1.address)).to.be.gt(0n);
-      await myUSDToken.connect(user1).approve(myUSDEngine.target, borrowAmount * 2n);
+      expect(await usdlEngine.s_userDebtShares(user1.address)).to.be.gt(0n);
+      await usdlToken.connect(user1).approve(usdlEngine.target, borrowAmount * 2n);
       await dex.connect(user1).swap(ethers.parseEther("10"), { value: ethers.parseEther("10") });
-      await myUSDEngine.connect(user1).repayUpTo(borrowAmount * 2n);
-      expect(await myUSDEngine.s_userDebtShares(user1.address)).to.equal(0);
+      await usdlEngine.connect(user1).repayUpTo(borrowAmount * 2n);
+      expect(await usdlEngine.s_userDebtShares(user1.address)).to.equal(0);
     });
 
     it("Should emit DebtSharesBurned event", async function () {
-      await myUSDToken.connect(user1).approve(myUSDEngine.target, borrowAmount);
-      await expect(myUSDEngine.connect(user1).repayUpTo(borrowAmount))
-        .to.emit(myUSDEngine, "DebtSharesBurned")
-        .withArgs(user1.address, borrowAmount, await myUSDToken.balanceOf(user1.address));
+      await usdlToken.connect(user1).approve(usdlEngine.target, borrowAmount);
+      await expect(usdlEngine.connect(user1).repayUpTo(borrowAmount))
+        .to.emit(usdlEngine, "DebtSharesBurned")
+        .withArgs(user1.address, borrowAmount, await usdlToken.balanceOf(user1.address));
     });
   });
 
@@ -217,12 +217,12 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     beforeEach(async function () {
       const collateralAmount = ethers.parseEther("1");
       const borrowAmount = ((await oracle.getETHUSDPrice()) * 1000n) / 1505n;
-      await myUSDEngine.connect(user1).addCollateral({ value: collateralAmount });
-      await myUSDEngine.connect(user1).mintMyUSD(borrowAmount);
-      await myUSDToken
-        .connect(await ethers.getImpersonatedSigner(myUSDEngine.target as string))
+      await usdlEngine.connect(user1).addCollateral({ value: collateralAmount });
+      await usdlEngine.connect(user1).mintUSDL(borrowAmount);
+      await usdlToken
+        .connect(await ethers.getImpersonatedSigner(usdlEngine.target as string))
         .mintTo(user2.address, borrowAmount * 10n);
-      await myUSDToken.connect(user2).approve(myUSDEngine.target, borrowAmount * 10n);
+      await usdlToken.connect(user2).approve(usdlEngine.target, borrowAmount * 10n);
     });
 
     it("Should allow liquidation when position is unsafe", async function () {
@@ -230,19 +230,19 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       const amountToSwap = ethers.parseEther("10");
       await dex.swap(amountToSwap, { value: amountToSwap });
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      expect(await myUSDEngine.isLiquidatable(user1)).to.be.true;
+      expect(await usdlEngine.isLiquidatable(user1)).to.be.true;
       const beforeBalance = await ethers.provider.getBalance(user2.address);
-      await myUSDEngine.connect(user2).liquidate(user1.address);
+      await usdlEngine.connect(user2).liquidate(user1.address);
       const afterBalance = await ethers.provider.getBalance(user2.address);
-      expect(await myUSDEngine.s_userDebtShares(user1.address)).to.equal(0);
+      expect(await usdlEngine.s_userDebtShares(user1.address)).to.equal(0);
       expect(afterBalance).to.be.gt(beforeBalance);
     });
 
     it("Should prevent liquidation of safe positions", async function () {
       // eslint-disable-next-line @typescript-eslint/no-unused-expressions
-      expect(await myUSDEngine.isLiquidatable(user1)).to.be.false;
-      await expect(myUSDEngine.connect(user2).liquidate(user1.address)).to.be.revertedWithCustomError(
-        myUSDEngine,
+      expect(await usdlEngine.isLiquidatable(user1)).to.be.false;
+      await expect(usdlEngine.connect(user2).liquidate(user1.address)).to.be.revertedWithCustomError(
+        usdlEngine,
         "Engine__NotLiquidatable",
       );
     });
@@ -250,7 +250,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     it("Should emit appropriate events on liquidation", async function () {
       const amountToSwap = ethers.parseEther("10");
       await dex.swap(amountToSwap, { value: amountToSwap });
-      await expect(myUSDEngine.connect(user2).liquidate(user1.address)).to.emit(myUSDEngine, "Liquidation");
+      await expect(usdlEngine.connect(user2).liquidate(user1.address)).to.emit(usdlEngine, "Liquidation");
     });
   });
 
@@ -258,23 +258,23 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     it("Should allow rate controller to set borrow rate", async function () {
       const newRate = 500; // 5%
       await rateController.setBorrowRate(newRate);
-      expect(await myUSDEngine.borrowRate()).to.equal(newRate);
+      expect(await usdlEngine.borrowRate()).to.equal(newRate);
     });
 
     it("Should emit BorrowRateUpdated event when rate changes", async function () {
       const newRate = 300; // 3%
-      await expect(rateController.setBorrowRate(newRate)).to.emit(myUSDEngine, "BorrowRateUpdated").withArgs(newRate);
+      await expect(rateController.setBorrowRate(newRate)).to.emit(usdlEngine, "BorrowRateUpdated").withArgs(newRate);
     });
 
     it("Should prevent non-rate controller from setting borrow rate", async function () {
       const newRate = 500;
       // First verify rate controller can set it (will fail with empty function)
       await rateController.setBorrowRate(newRate);
-      expect(await myUSDEngine.borrowRate()).to.equal(newRate);
+      expect(await usdlEngine.borrowRate()).to.equal(newRate);
 
       // Then verify non-rate controller cannot
-      await expect(myUSDEngine.connect(user1).setBorrowRate(newRate)).to.be.revertedWithCustomError(
-        myUSDEngine,
+      await expect(usdlEngine.connect(user1).setBorrowRate(newRate)).to.be.revertedWithCustomError(
+        usdlEngine,
         "Engine__NotRateController",
       );
     });
@@ -287,7 +287,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
       // Try to set borrow rate to 2% (below savings rate) - should revert
       await expect(rateController.setBorrowRate(200)).to.be.revertedWithCustomError(
-        myUSDEngine,
+        usdlEngine,
         "Engine__InvalidBorrowRate",
       );
     });
@@ -296,32 +296,32 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       await rateController.setBorrowRate(400);
       await rateController.setSavingsRate(300);
       await rateController.setBorrowRate(300);
-      expect(await myUSDEngine.borrowRate()).to.equal(300);
+      expect(await usdlEngine.borrowRate()).to.equal(300);
     });
 
     it("Should allow setting borrow rate above savings rate", async function () {
       await rateController.setBorrowRate(300);
       await rateController.setSavingsRate(300);
       await rateController.setBorrowRate(500);
-      expect(await myUSDEngine.borrowRate()).to.equal(500);
+      expect(await usdlEngine.borrowRate()).to.equal(500);
     });
   });
 
   describe("Interest Accrual", function () {
     beforeEach(async function () {
-      await myUSDEngine.connect(user1).addCollateral({ value: collateralAmount });
-      await myUSDEngine.connect(user1).mintMyUSD(borrowAmount);
+      await usdlEngine.connect(user1).addCollateral({ value: collateralAmount });
+      await usdlEngine.connect(user1).mintUSDL(borrowAmount);
     });
 
     it("Should not accrue interest with zero borrow rate", async function () {
-      const initialDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      const initialDebt = await usdlEngine.getCurrentDebtValue(user1.address);
       expect(initialDebt).to.be.gt(0); // Verify debt was actually created
 
       // Fast forward time by 1 year
       await ethers.provider.send("evm_increaseTime", [365 * 24 * 60 * 60]);
       await ethers.provider.send("evm_mine", []);
 
-      const finalDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      const finalDebt = await usdlEngine.getCurrentDebtValue(user1.address);
       expect(finalDebt).to.be.eq(initialDebt);
     });
 
@@ -329,14 +329,14 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       const borrowRate = 1000; // 10% annual
       await rateController.setBorrowRate(borrowRate);
 
-      const initialDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      const initialDebt = await usdlEngine.getCurrentDebtValue(user1.address);
       expect(initialDebt).to.be.gt(0); // Verify debt was actually created
 
       // Fast forward time by 1 year
       await ethers.provider.send("evm_increaseTime", [365 * 24 * 60 * 60]);
       await ethers.provider.send("evm_mine", []);
 
-      const finalDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      const finalDebt = await usdlEngine.getCurrentDebtValue(user1.address);
       const expectedDebt = initialDebt + (initialDebt * BigInt(borrowRate)) / 10000n;
 
       expect(finalDebt).to.be.closeTo(expectedDebt, ethers.parseEther("0.001"));
@@ -346,14 +346,14 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       const borrowRate = 1200; // 12% annual
       await rateController.setBorrowRate(borrowRate);
 
-      const initialDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      const initialDebt = await usdlEngine.getCurrentDebtValue(user1.address);
       expect(initialDebt).to.be.gt(0); // Verify debt was actually created
 
       // Fast forward time by 6 months
       await ethers.provider.send("evm_increaseTime", [182 * 24 * 60 * 60]); // ~6 months
       await ethers.provider.send("evm_mine", []);
 
-      const finalDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      const finalDebt = await usdlEngine.getCurrentDebtValue(user1.address);
       const expectedDebt = initialDebt + (initialDebt * BigInt(borrowRate) * 182n) / (365n * 10000n);
 
       expect(finalDebt).to.be.closeTo(expectedDebt, ethers.parseEther("0.001"));
@@ -363,24 +363,24 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       const borrowRate = 500; // 5% annual
       await rateController.setBorrowRate(borrowRate);
 
-      const initialDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      const initialDebt = await usdlEngine.getCurrentDebtValue(user1.address);
       expect(initialDebt).to.be.gt(0); // Verify debt was actually created
 
       // Fast forward 3 months
       await ethers.provider.send("evm_increaseTime", [91 * 24 * 60 * 60]);
       await ethers.provider.send("evm_mine", []);
 
-      const midDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      const midDebt = await usdlEngine.getCurrentDebtValue(user1.address);
       const expectedMidDebt = initialDebt + (initialDebt * BigInt(borrowRate) * 91n) / (365n * 10000n);
 
       // Change rate and fast forward another 3 months
       await rateController.setBorrowRate(800); // 8% annual
 
-      const afterRateChangeDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      const afterRateChangeDebt = await usdlEngine.getCurrentDebtValue(user1.address);
       await ethers.provider.send("evm_increaseTime", [91 * 24 * 60 * 60]);
       await ethers.provider.send("evm_mine", []);
 
-      const finalDebt = await myUSDEngine.getCurrentDebtValue(user1.address);
+      const finalDebt = await usdlEngine.getCurrentDebtValue(user1.address);
       const expectedFinalDebt = afterRateChangeDebt + (afterRateChangeDebt * BigInt(800) * 91n) / (365n * 10000n);
 
       expect(midDebt).to.be.closeTo(expectedMidDebt, ethers.parseEther("0.001"));
@@ -391,7 +391,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
   describe("Savings Rate Management", function () {
     beforeEach(async function () {
       await rateController.setBorrowRate(400);
-      expect(await myUSDEngine.borrowRate()).to.equal(400);
+      expect(await usdlEngine.borrowRate()).to.equal(400);
     });
 
     it("Should allow rate controller to set savings rate", async function () {
@@ -435,7 +435,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
     it("Should prevent setting borrow rate below savings rate", async function () {
       await rateController.setSavingsRate(350);
       await expect(rateController.setBorrowRate(300)).to.be.revertedWithCustomError(
-        myUSDEngine,
+        usdlEngine,
         "Engine__InvalidBorrowRate",
       );
     });
@@ -443,17 +443,17 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
   describe("Staking Operations", function () {
     beforeEach(async function () {
-      // Get some MyUSD tokens for testing
-      await myUSDEngine.connect(user1).addCollateral({ value: collateralAmount });
-      await myUSDEngine.connect(user1).mintMyUSD(borrowAmount);
+      // Get some USDL tokens for testing
+      await usdlEngine.connect(user1).addCollateral({ value: collateralAmount });
+      await usdlEngine.connect(user1).mintUSDL(borrowAmount);
 
       // Verify that user1 got the tokens
-      expect(await myUSDToken.balanceOf(user1.address)).to.be.gt(0);
+      expect(await usdlToken.balanceOf(user1.address)).to.be.gt(0);
     });
 
-    it("Should allow staking MyUSD tokens", async function () {
+    it("Should allow staking USDL tokens", async function () {
       const stakeAmount = ethers.parseEther("1000");
-      await myUSDToken.connect(user1).approve(staking.target, stakeAmount);
+      await usdlToken.connect(user1).approve(staking.target, stakeAmount);
       await staking.connect(user1).stake(stakeAmount);
 
       expect(await staking.userShares(user1.address)).to.be.gt(0);
@@ -462,7 +462,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
     it("Should emit Staked event", async function () {
       const stakeAmount = ethers.parseEther("1000");
-      await myUSDToken.connect(user1).approve(staking.target, stakeAmount);
+      await usdlToken.connect(user1).approve(staking.target, stakeAmount);
 
       await expect(staking.connect(user1).stake(stakeAmount))
         .to.emit(staking, "Staked")
@@ -475,22 +475,22 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
     it("Should prevent staking without sufficient balance", async function () {
       const stakeAmount = ethers.parseEther("100000"); // More than user has
-      await myUSDToken.connect(user1).approve(staking.target, stakeAmount);
+      await usdlToken.connect(user1).approve(staking.target, stakeAmount);
 
       await expect(staking.connect(user1).stake(stakeAmount)).to.be.revertedWithCustomError(
         staking,
-        "MyUSD__InsufficientBalance",
+        "USDL__InsufficientBalance",
       );
     });
 
     it("Should prevent staking without sufficient allowance", async function () {
       const stakeAmount = ethers.parseEther("1000");
       // Don't approve or approve less
-      await myUSDToken.connect(user1).approve(staking.target, stakeAmount / 2n);
+      await usdlToken.connect(user1).approve(staking.target, stakeAmount / 2n);
 
       await expect(staking.connect(user1).stake(stakeAmount)).to.be.revertedWithCustomError(
         staking,
-        "MyUSD__InsufficientAllowance",
+        "USDL__InsufficientAllowance",
       );
     });
 
@@ -498,7 +498,7 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
       const stakeAmount1 = ethers.parseEther("1000");
       const stakeAmount2 = ethers.parseEther("500");
 
-      await myUSDToken.connect(user1).approve(staking.target, stakeAmount1 + stakeAmount2);
+      await usdlToken.connect(user1).approve(staking.target, stakeAmount1 + stakeAmount2);
 
       await staking.connect(user1).stake(stakeAmount1);
       const balanceAfterFirst = await staking.getBalance(user1.address);
@@ -513,19 +513,19 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
   describe("Withdrawal Operations", function () {
     beforeEach(async function () {
-      // Setup user with MyUSD and stake some
-      await myUSDEngine.connect(user1).addCollateral({ value: collateralAmount });
-      await myUSDEngine.connect(user1).mintMyUSD(borrowAmount);
+      // Setup user with USDL and stake some
+      await usdlEngine.connect(user1).addCollateral({ value: collateralAmount });
+      await usdlEngine.connect(user1).mintUSDL(borrowAmount);
 
       const stakeAmount = ethers.parseEther("1000");
-      await myUSDToken.connect(user1).approve(staking.target, stakeAmount);
+      await usdlToken.connect(user1).approve(staking.target, stakeAmount);
       await staking.connect(user1).stake(stakeAmount);
     });
 
     it("Should allow withdrawing staked tokens", async function () {
-      const initialBalance = await myUSDToken.balanceOf(user1.address);
+      const initialBalance = await usdlToken.balanceOf(user1.address);
       await staking.connect(user1).withdraw();
-      const finalBalance = await myUSDToken.balanceOf(user1.address);
+      const finalBalance = await usdlToken.balanceOf(user1.address);
 
       expect(await staking.userShares(user1.address)).to.equal(0);
       expect(finalBalance).to.be.gt(initialBalance);
@@ -564,12 +564,12 @@ describe("🚩 Stablecoin Challenge 🤓", function () {
 
   describe("Savings Interest Accrual", function () {
     beforeEach(async function () {
-      // Setup user with MyUSD and stake some
-      await myUSDEngine.connect(user1).addCollateral({ value: collateralAmount });
-      await myUSDEngine.connect(user1).mintMyUSD(borrowAmount);
+      // Setup user with USDL and stake some
+      await usdlEngine.connect(user1).addCollateral({ value: collateralAmount });
+      await usdlEngine.connect(user1).mintUSDL(borrowAmount);
 
       const stakeAmount = ethers.parseEther("1000");
-      await myUSDToken.connect(user1).approve(staking.target, stakeAmount);
+      await usdlToken.connect(user1).approve(staking.target, stakeAmount);
       await staking.connect(user1).stake(stakeAmount);
     });
 

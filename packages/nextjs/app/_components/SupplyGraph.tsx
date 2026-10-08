@@ -32,11 +32,11 @@ const calculateDexSwapAmounts = (event: any) => {
   if (!event || event.eventName !== "Swap") return { sent: 0, received: 0 };
 
   const { inputToken, inputAmount, outputAmount } = event.args || {};
-  const isEthToMyUSD = inputToken === ZERO_ADDRESS;
+  const isEthToUSDL = inputToken === ZERO_ADDRESS;
 
   return {
-    sent: isEthToMyUSD ? Number(formatEther(outputAmount || 0n)) : 0,
-    received: !isEthToMyUSD ? Number(formatEther(inputAmount || 0n)) : 0,
+    sent: isEthToUSDL ? Number(formatEther(outputAmount || 0n)) : 0,
+    received: !isEthToUSDL ? Number(formatEther(inputAmount || 0n)) : 0,
   };
 };
 
@@ -49,10 +49,10 @@ const CustomTooltip = ({ active, payload, label }: TooltipProps<number, string>)
       <div className="bg-base-200 border border-base-300 px-3 my-0 shadow-lg">
         <p className="font-semibold text-sm mt-2 mb-1">Block {label}</p>
         <p className="text-sm my-0">
-          <span style={{ color: ORANGE_COLOR }}>●</span> Total: {formatDisplayValue(total)} MyUSD
+          <span style={{ color: ORANGE_COLOR }}>●</span> Total: {formatDisplayValue(total)} USDL
         </p>
         <p className="text-sm my-0">
-          <span style={{ color: GREEN_COLOR }}>●</span> Staked: {formatDisplayValue(staked)} MyUSD
+          <span style={{ color: GREEN_COLOR }}>●</span> Staked: {formatDisplayValue(staked)} USDL
         </p>
       </div>
     );
@@ -73,7 +73,7 @@ const SupplyGraph = () => {
   const initialDexSupply = Number(formatEther(ethPrice ? ethPrice * 10000000n : 0n));
 
   const { data: debtSharesMintedEvents, isLoading: isDebtSharesMintedLoading } = useScaffoldEventHistory({
-    contractName: "MyUSDEngine",
+    contractName: "USDLEngine",
     eventName: "DebtSharesMinted",
     watch: true,
     blockData: true,
@@ -82,7 +82,7 @@ const SupplyGraph = () => {
   });
 
   const { data: debtSharesBurnedEvents, isLoading: isDebtSharesBurnedLoading } = useScaffoldEventHistory({
-    contractName: "MyUSDEngine",
+    contractName: "USDLEngine",
     eventName: "DebtSharesBurned",
     watch: true,
     blockData: true,
@@ -91,7 +91,7 @@ const SupplyGraph = () => {
   });
 
   const { data: stakedEvents, isLoading: isStakedLoading } = useScaffoldEventHistory({
-    contractName: "MyUSDStaking",
+    contractName: "USDLStaking",
     eventName: "Staked",
     watch: true,
     blockData: true,
@@ -100,7 +100,7 @@ const SupplyGraph = () => {
   });
 
   const { data: withdrawnEvents, isLoading: isWithdrawnLoading } = useScaffoldEventHistory({
-    contractName: "MyUSDStaking",
+    contractName: "USDLStaking",
     eventName: "Withdrawn",
     watch: true,
     blockData: true,
@@ -135,14 +135,14 @@ const SupplyGraph = () => {
     const staked = event?.eventName === "Staked" ? Number(formatEther(event?.args?.amount || 0n)) : 0;
     const withdrawn = event?.eventName === "Withdrawn" ? Number(formatEther(event?.args?.amount || 0n)) : 0;
 
-    const { sent: dexSentMyUSDAmount, received: dexReceivedMyUSDAmount } = calculateDexSwapAmounts(event);
+    const { sent: dexSentUSDLAmount, received: dexReceivedUSDLAmount } = calculateDexSwapAmounts(event);
 
     if (minted >= initialDexSupply) {
       minted = 0;
     }
 
     const circulatingSupply = Math.max(
-      prevCirculatingSupply + minted - burned - staked + withdrawn + dexSentMyUSDAmount - dexReceivedMyUSDAmount,
+      prevCirculatingSupply + minted - burned - staked + withdrawn + dexSentUSDLAmount - dexReceivedUSDLAmount,
       0,
     );
     const stakedSupply = Math.max(prevStakedSupply + staked - withdrawn, 0);
@@ -166,7 +166,7 @@ const SupplyGraph = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText="Visualize MyUSD's total circulation (purple) and staked tokens (green) across time"
+        infoText="Visualize USDL's total circulation (purple) and staked tokens (green) across time"
       />
       <div className="card-body p-0 h-96 w-full">
         <div className="flex justify-between items-center pt-5 px-5">
@@ -188,7 +188,7 @@ const SupplyGraph = () => {
                 tickFormatter={formatDisplayValue}
                 domain={[0, (dataMax: number) => dataMax]}
                 label={{
-                  value: "MyUSD Amount",
+                  value: "USDL Amount",
                   angle: -90,
                   position: "insideLeft",
                   fill: strokeColor,

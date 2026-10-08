@@ -1,20 +1,20 @@
-name: "MyUSD Stablecoin"
+name: "USDL Stablecoin"
 version: "1.0"
-description: "Build the core engine for MyUSD, a crypto-backed stablecoin with collateralization, interest rates, and liquidation mechanics"
+description: "Build the core engine for USDL, a crypto-backed stablecoin with collateralization, interest rates, and liquidation mechanics"
 difficulty: "advanced"
 estimated_time: "4 - 12 hours"
 
 setup:
   file:
-    hardhat: "packages/hardhat/contracts/MyUSDEngine.sol"
-    foundry: "packages/foundry/contracts/MyUSDEngine.sol"
+    hardhat: "packages/hardhat/contracts/USDLEngine.sol"
+    foundry: "packages/foundry/contracts/USDLEngine.sol"
 
 welcome_message: |
-  Welcome to the MyUSD Stablecoin Challenge!
+  Welcome to the USDL Stablecoin Challenge!
 
-  You'll build the **MyUSDEngine** — the core engine powering a crypto-backed stablecoin pegged to $1 USD. You'll implement:
+  You'll build the **USDLEngine** — the core engine powering a crypto-backed stablecoin pegged to $1 USD. You'll implement:
 
-  1. **Collateral & minting** — deposit ETH, calculate value, mint MyUSD against it
+  1. **Collateral & minting** — deposit ETH, calculate value, mint USDL against it
   2. **Interest system** — share-based debt tracking with exchange rates
   3. **Borrow rate management** — set rates to influence supply/demand
   4. **Repaying & withdrawing** — repay debt and reclaim collateral safely
@@ -56,7 +56,7 @@ checkpoints:
   # ============================================================
   - id: "collateral-and-minting"
     title: "Collateral, Interest System & Minting"
-    description: "Implement collateral deposits, share-based interest tracking, and MyUSD minting with position validation"
+    description: "Implement collateral deposits, share-based interest tracking, and USDL minting with position validation"
 
     context: |
       ## The Foundation: Collateral, Interest & Minting
@@ -68,7 +68,7 @@ checkpoints:
       Users deposit ETH as collateral. `addCollateral()` is a `payable` function that records ETH in `s_userCollateral`. `calculateCollateralValue()` converts ETH to USD using the oracle:
 
       ```solidity
-      (collateralAmount * i_oracle.getETHMyUSDPrice()) / PRECISION
+      (collateralAmount * i_oracle.getETHUSDLPrice()) / PRECISION
       ```
 
       We divide by `PRECISION` (1e18) because both the amount (in wei) and the price are scaled by 1e18 — multiplying gives 1e36, so we divide once to get back to 1e18.
@@ -76,26 +76,26 @@ checkpoints:
       ### Part 2: Interest System (3 functions)
 
       Instead of updating every user's debt when interest accrues, we use a **share-based system** with two key variables:
-      - `debtExchangeRate` — how much MyUSD each debt share is worth
+      - `debtExchangeRate` — how much USDL each debt share is worth
       - `lastUpdateTime` — when the rate was last updated
 
-      **Example:** Bob mints 100 MyUSD → gets 100 shares. After a year at 10% interest, each share is worth 1.1 MyUSD, so Bob owes 110 MyUSD — but we only updated one variable, not Bob's balance.
+      **Example:** Bob mints 100 USDL → gets 100 shares. After a year at 10% interest, each share is worth 1.1 USDL, so Bob owes 110 USDL — but we only updated one variable, not Bob's balance.
 
-      If Alice then mints 100 MyUSD, she gets `100 / 1.1 = ~90.91` shares. She owes 100 MyUSD now but won't pay interest on the first year's debt.
+      If Alice then mints 100 USDL, she gets `100 / 1.1 = ~90.91` shares. She owes 100 USDL now but won't pay interest on the first year's debt.
 
       Three functions work together:
       - `_getCurrentExchangeRate()` — calculates the exchange rate if interest were accrued right now
       - `_accrueInterest()` — persists the updated exchange rate and timestamp
-      - `_getMyUSDToShares()` — converts MyUSD amounts to share amounts
+      - `_getUSDLToShares()` — converts USDL amounts to share amounts
 
       The interest formula: `interest = totalDebtValue * borrowRate * timeElapsed / (SECONDS_PER_YEAR * 10000)`. The rate is in basis points (500 = 5%).
 
       ### Part 3: Minting & Position Health (4 functions)
 
-      - `getCurrentDebtValue()` — shares × exchange rate = actual MyUSD owed
+      - `getCurrentDebtValue()` — shares × exchange rate = actual USDL owed
       - `calculatePositionRatio()` — collateral value / debt value (returns `type(uint256).max` if no debt)
       - `_validatePosition()` — reverts if position ratio is below 150% (`COLLATERAL_RATIO`)
-      - `mintMyUSD()` — converts amount to shares, updates state, validates position, then mints tokens
+      - `mintUSDL()` — converts amount to shares, updates state, validates position, then mints tokens
 
       The 150% ratio means for every $1 of debt, there must be $1.50 of collateral — a buffer against price drops.
 
@@ -128,18 +128,18 @@ checkpoints:
 
     task:
       description: |
-        Open `packages/hardhat/contracts/MyUSDEngine.sol` and implement these 8 functions:
+        Open `packages/hardhat/contracts/USDLEngine.sol` and implement these 8 functions:
 
         **Collateral (Checkpoint 2 in contract):**
 
         1. **`addCollateral()`** (payable):
            - Revert with `Engine__InvalidAmount()` if `msg.value == 0`
            - Add `msg.value` to `s_userCollateral[msg.sender]`
-           - Emit `CollateralAdded(msg.sender, msg.value, i_oracle.getETHMyUSDPrice())`
+           - Emit `CollateralAdded(msg.sender, msg.value, i_oracle.getETHUSDLPrice())`
 
         2. **`calculateCollateralValue(address user)`**:
            - Get user's collateral from `s_userCollateral[user]`
-           - Return `(collateralAmount * i_oracle.getETHMyUSDPrice()) / PRECISION`
+           - Return `(collateralAmount * i_oracle.getETHUSDLPrice()) / PRECISION`
 
         **Interest System (Checkpoint 3):**
 
@@ -156,7 +156,7 @@ checkpoints:
            - Set `debtExchangeRate = _getCurrentExchangeRate()`
            - Set `lastUpdateTime = block.timestamp`
 
-        5. **`_getMyUSDToShares(uint256 amount)`**:
+        5. **`_getUSDLToShares(uint256 amount)`**:
            - Return `(amount * PRECISION) / _getCurrentExchangeRate()`
 
         **Minting & Position Health (Checkpoint 4):**
@@ -173,11 +173,11 @@ checkpoints:
            - Get position ratio
            - If `(positionRatio * 100) < COLLATERAL_RATIO * PRECISION`, revert with `Engine__UnsafePositionRatio()`
 
-        9. **`mintMyUSD(uint256 mintAmount)`**:
+        9. **`mintUSDL(uint256 mintAmount)`**:
            - Revert if `mintAmount == 0`
-           - Convert to shares with `_getMyUSDToShares`, add to user and total shares
+           - Convert to shares with `_getUSDLToShares`, add to user and total shares
            - Call `_validatePosition(msg.sender)` — reverts if unsafe
-           - Call `i_myUSD.mintTo(msg.sender, mintAmount)`
+           - Call `i_usdl.mintTo(msg.sender, mintAmount)`
            - Emit `DebtSharesMinted(msg.sender, mintAmount, shares)`
 
         ### Try it out
@@ -187,13 +187,13 @@ checkpoints:
         1. Run `yarn deploy --reset`
         2. On the right side of the screen, hover the top icon to open the collateral menu — try depositing some ETH
         3. Your address should appear in the left table
-        4. Hover the mint icon and try minting MyUSD against your collateral (up to 150% collateral ratio)
-        5. The frontend should show your MyUSD balance and position ratio
+        4. Hover the mint icon and try minting USDL against your collateral (up to 150% collateral ratio)
+        5. The frontend should show your USDL balance and position ratio
 
         Say **"check"** when you're ready!
       file:
-        hardhat: "packages/hardhat/contracts/MyUSDEngine.sol"
-        foundry: "packages/foundry/contracts/MyUSDEngine.sol"
+        hardhat: "packages/hardhat/contracts/USDLEngine.sol"
+        foundry: "packages/foundry/contracts/USDLEngine.sol"
       test:
         hardhat: "yarn test --grep 'Borrowing Operations'"
         foundry: "yarn test --match-test 'Checkpoint1'"
@@ -207,13 +207,13 @@ checkpoints:
           return debtExchangeRate + (interest * PRECISION) / totalDebtShares;
           ```
         - |
-          For `mintMyUSD`, the order matters: update state → validate → mint:
+          For `mintUSDL`, the order matters: update state → validate → mint:
           ```solidity
-          uint256 shares = _getMyUSDToShares(mintAmount);
+          uint256 shares = _getUSDLToShares(mintAmount);
           s_userDebtShares[msg.sender] += shares;
           totalDebtShares += shares;
           _validatePosition(msg.sender);
-          i_myUSD.mintTo(msg.sender, mintAmount);
+          i_usdl.mintTo(msg.sender, mintAmount);
           ```
         - |
           Full solutions for all 8 functions:
@@ -222,13 +222,13 @@ checkpoints:
           function addCollateral() public payable {
               if (msg.value == 0) revert Engine__InvalidAmount();
               s_userCollateral[msg.sender] += msg.value;
-              emit CollateralAdded(msg.sender, msg.value, i_oracle.getETHMyUSDPrice());
+              emit CollateralAdded(msg.sender, msg.value, i_oracle.getETHUSDLPrice());
           }
 
           // calculateCollateralValue
           function calculateCollateralValue(address user) public view returns (uint256) {
               uint256 collateralAmount = s_userCollateral[user];
-              return (collateralAmount * i_oracle.getETHMyUSDPrice()) / PRECISION;
+              return (collateralAmount * i_oracle.getETHUSDLPrice()) / PRECISION;
           }
 
           // _getCurrentExchangeRate
@@ -248,8 +248,8 @@ checkpoints:
               lastUpdateTime = block.timestamp;
           }
 
-          // _getMyUSDToShares
-          function _getMyUSDToShares(uint256 amount) internal view returns (uint256) {
+          // _getUSDLToShares
+          function _getUSDLToShares(uint256 amount) internal view returns (uint256) {
               uint256 currentExchangeRate = _getCurrentExchangeRate();
               return (amount * PRECISION) / currentExchangeRate;
           }
@@ -277,14 +277,14 @@ checkpoints:
               }
           }
 
-          // mintMyUSD
-          function mintMyUSD(uint256 mintAmount) public {
+          // mintUSDL
+          function mintUSDL(uint256 mintAmount) public {
               if (mintAmount == 0) revert Engine__InvalidAmount();
-              uint256 shares = _getMyUSDToShares(mintAmount);
+              uint256 shares = _getUSDLToShares(mintAmount);
               s_userDebtShares[msg.sender] += shares;
               totalDebtShares += shares;
               _validatePosition(msg.sender);
-              i_myUSD.mintTo(msg.sender, mintAmount);
+              i_usdl.mintTo(msg.sender, mintAmount);
               emit DebtSharesMinted(msg.sender, mintAmount, shares);
           }
           ```
@@ -292,12 +292,12 @@ checkpoints:
         function addCollateral() public payable {
             if (msg.value == 0) revert Engine__InvalidAmount();
             s_userCollateral[msg.sender] += msg.value;
-            emit CollateralAdded(msg.sender, msg.value, i_oracle.getETHMyUSDPrice());
+            emit CollateralAdded(msg.sender, msg.value, i_oracle.getETHUSDLPrice());
         }
 
         function calculateCollateralValue(address user) public view returns (uint256) {
             uint256 collateralAmount = s_userCollateral[user];
-            return (collateralAmount * i_oracle.getETHMyUSDPrice()) / PRECISION;
+            return (collateralAmount * i_oracle.getETHUSDLPrice()) / PRECISION;
         }
 
         function _getCurrentExchangeRate() internal view returns (uint256) {
@@ -318,7 +318,7 @@ checkpoints:
             lastUpdateTime = block.timestamp;
         }
 
-        function _getMyUSDToShares(uint256 amount) internal view returns (uint256) {
+        function _getUSDLToShares(uint256 amount) internal view returns (uint256) {
             uint256 currentExchangeRate = _getCurrentExchangeRate();
             return (amount * PRECISION) / currentExchangeRate;
         }
@@ -343,13 +343,13 @@ checkpoints:
             }
         }
 
-        function mintMyUSD(uint256 mintAmount) public {
+        function mintUSDL(uint256 mintAmount) public {
             if (mintAmount == 0) revert Engine__InvalidAmount();
-            uint256 shares = _getMyUSDToShares(mintAmount);
+            uint256 shares = _getUSDLToShares(mintAmount);
             s_userDebtShares[msg.sender] += shares;
             totalDebtShares += shares;
             _validatePosition(msg.sender);
-            i_myUSD.mintTo(msg.sender, mintAmount);
+            i_usdl.mintTo(msg.sender, mintAmount);
             emit DebtSharesMinted(msg.sender, mintAmount, shares);
         }
 
@@ -409,8 +409,8 @@ checkpoints:
 
         Say **"check"** when you're ready!
       file:
-        hardhat: "packages/hardhat/contracts/MyUSDEngine.sol"
-        foundry: "packages/foundry/contracts/MyUSDEngine.sol"
+        hardhat: "packages/hardhat/contracts/USDLEngine.sol"
+        foundry: "packages/foundry/contracts/USDLEngine.sol"
       test:
         hardhat: "yarn test --grep 'Interest Accrual'"
         foundry: "yarn test --match-test 'Checkpoint2'"
@@ -484,14 +484,14 @@ checkpoints:
         Implement two functions:
 
         1. **`repayUpTo(uint256 amount)`**:
-           - Convert amount to shares with `_getMyUSDToShares(amount)`
+           - Convert amount to shares with `_getUSDLToShares(amount)`
            - If shares > user's debt shares, cap at user's actual debt:
              - Set `amountInShares = s_userDebtShares[msg.sender]`
              - Set `amount = getCurrentDebtValue(msg.sender)`
-           - Revert with `MyUSD__InsufficientBalance()` if `amount == 0` or user's MyUSD balance < amount
-           - Revert with `MyUSD__InsufficientAllowance()` if allowance < amount
+           - Revert with `USDL__InsufficientBalance()` if `amount == 0` or user's USDL balance < amount
+           - Revert with `USDL__InsufficientAllowance()` if allowance < amount
            - Subtract shares from `s_userDebtShares[msg.sender]` and `totalDebtShares`
-           - Call `i_myUSD.burnFrom(msg.sender, amount)`
+           - Call `i_usdl.burnFrom(msg.sender, amount)`
            - Emit `DebtSharesBurned(msg.sender, amount, amountInShares)`
 
         2. **`withdrawCollateral(uint256 amount)`**:
@@ -500,20 +500,20 @@ checkpoints:
            - Set `s_userCollateral[msg.sender]` to the new value (subtract amount)
            - If user has debt shares > 0, call `_validatePosition(msg.sender)`
            - Transfer ETH with `payable(msg.sender).transfer(amount)`
-           - Emit `CollateralWithdrawn(msg.sender, amount, i_oracle.getETHMyUSDPrice())`
+           - Emit `CollateralWithdrawn(msg.sender, amount, i_oracle.getETHUSDLPrice())`
 
         ### Try it out
 
         After tests pass:
 
         1. Run `yarn deploy --reset`
-        2. Try the full workflow on the frontend: deposit collateral → mint MyUSD → repay debt → withdraw collateral
+        2. Try the full workflow on the frontend: deposit collateral → mint USDL → repay debt → withdraw collateral
         3. Try withdrawing too much collateral while having debt — it should fail (unsafe position)
 
         Say **"check"** when you're ready!
       file:
-        hardhat: "packages/hardhat/contracts/MyUSDEngine.sol"
-        foundry: "packages/foundry/contracts/MyUSDEngine.sol"
+        hardhat: "packages/hardhat/contracts/USDLEngine.sol"
+        foundry: "packages/foundry/contracts/USDLEngine.sol"
       test:
         hardhat: "yarn test --grep 'Repayment Operations'"
         foundry: "yarn test --match-test 'Checkpoint3'"
@@ -521,7 +521,7 @@ checkpoints:
         - |
           For `repayUpTo`, the key is handling overpayment:
           ```solidity
-          uint256 amountInShares = _getMyUSDToShares(amount);
+          uint256 amountInShares = _getUSDLToShares(amount);
           if (amountInShares > s_userDebtShares[msg.sender]) {
               amountInShares = s_userDebtShares[msg.sender];
               amount = getCurrentDebtValue(msg.sender);
@@ -540,20 +540,20 @@ checkpoints:
           Full solutions:
           ```solidity
           function repayUpTo(uint256 amount) public {
-              uint256 amountInShares = _getMyUSDToShares(amount);
+              uint256 amountInShares = _getUSDLToShares(amount);
               if (amountInShares > s_userDebtShares[msg.sender]) {
                   amountInShares = s_userDebtShares[msg.sender];
                   amount = getCurrentDebtValue(msg.sender);
               }
-              if (amount == 0 || i_myUSD.balanceOf(msg.sender) < amount) {
-                  revert MyUSD__InsufficientBalance();
+              if (amount == 0 || i_usdl.balanceOf(msg.sender) < amount) {
+                  revert USDL__InsufficientBalance();
               }
-              if (i_myUSD.allowance(msg.sender, address(this)) < amount) {
-                  revert MyUSD__InsufficientAllowance();
+              if (i_usdl.allowance(msg.sender, address(this)) < amount) {
+                  revert USDL__InsufficientAllowance();
               }
               s_userDebtShares[msg.sender] -= amountInShares;
               totalDebtShares -= amountInShares;
-              i_myUSD.burnFrom(msg.sender, amount);
+              i_usdl.burnFrom(msg.sender, amount);
               emit DebtSharesBurned(msg.sender, amount, amountInShares);
           }
 
@@ -566,25 +566,25 @@ checkpoints:
                   _validatePosition(msg.sender);
               }
               payable(msg.sender).transfer(amount);
-              emit CollateralWithdrawn(msg.sender, amount, i_oracle.getETHMyUSDPrice());
+              emit CollateralWithdrawn(msg.sender, amount, i_oracle.getETHUSDLPrice());
           }
           ```
       solution: |
         function repayUpTo(uint256 amount) public {
-            uint256 amountInShares = _getMyUSDToShares(amount);
+            uint256 amountInShares = _getUSDLToShares(amount);
             if (amountInShares > s_userDebtShares[msg.sender]) {
                 amountInShares = s_userDebtShares[msg.sender];
                 amount = getCurrentDebtValue(msg.sender);
             }
-            if (amount == 0 || i_myUSD.balanceOf(msg.sender) < amount) {
-                revert MyUSD__InsufficientBalance();
+            if (amount == 0 || i_usdl.balanceOf(msg.sender) < amount) {
+                revert USDL__InsufficientBalance();
             }
-            if (i_myUSD.allowance(msg.sender, address(this)) < amount) {
-                revert MyUSD__InsufficientAllowance();
+            if (i_usdl.allowance(msg.sender, address(this)) < amount) {
+                revert USDL__InsufficientAllowance();
             }
             s_userDebtShares[msg.sender] -= amountInShares;
             totalDebtShares -= amountInShares;
-            i_myUSD.burnFrom(msg.sender, amount);
+            i_usdl.burnFrom(msg.sender, amount);
             emit DebtSharesBurned(msg.sender, amount, amountInShares);
         }
 
@@ -597,7 +597,7 @@ checkpoints:
                 _validatePosition(msg.sender);
             }
             payable(msg.sender).transfer(amount);
-            emit CollateralWithdrawn(msg.sender, amount, i_oracle.getETHMyUSDPrice());
+            emit CollateralWithdrawn(msg.sender, amount, i_oracle.getETHUSDLPrice());
         }
 
   # ============================================================
@@ -620,17 +620,17 @@ checkpoints:
 
       ### How liquidation works step by step:
       1. Check the position is actually liquidatable
-      2. Verify the liquidator has enough MyUSD and has approved spending
-      3. Burn the liquidator's MyUSD to cover the debt
+      2. Verify the liquidator has enough USDL and has approved spending
+      3. Burn the liquidator's USDL to cover the debt
       4. Clear the user's debt shares
       5. Calculate collateral to cover debt + 10% reward
       6. Cap at the user's total collateral (can't give away more than exists)
       7. Transfer collateral to the liquidator
 
-      **Important:** The liquidated user still keeps the MyUSD they originally minted. The liquidator used their own MyUSD to pay off the debt.
+      **Important:** The liquidated user still keeps the USDL they originally minted. The liquidator used their own USDL to pay off the debt.
 
     questions:
-      - text: "After a liquidation, the original borrower still has the MyUSD they minted. Who actually 'paid' for the debt to be cleared?"
+      - text: "After a liquidation, the original borrower still has the USDL they minted. Who actually 'paid' for the debt to be cleared?"
         concepts:
           [
             "liquidator",
@@ -640,7 +640,7 @@ checkpoints:
             "reward",
             "incentiv",
           ]
-        hint: "The liquidator burned their own MyUSD to clear the debt. In return, they got the borrower's ETH collateral plus a bonus. The original borrower keeps their MyUSD but loses their collateral."
+        hint: "The liquidator burned their own USDL to clear the debt. In return, they got the borrower's ETH collateral plus a bonus. The original borrower keeps their USDL but loses their collateral."
 
     task:
       description: |
@@ -653,9 +653,9 @@ checkpoints:
         2. **`liquidate(address user)`**:
            - Revert with `Engine__NotLiquidatable()` if user is not liquidatable
            - Get the user's debt value, collateral amount, and collateral value
-           - Revert with `MyUSD__InsufficientBalance()` if liquidator's MyUSD balance < debt
-           - Revert with `MyUSD__InsufficientAllowance()` if allowance < debt
-           - Burn debt amount from liquidator: `i_myUSD.burnFrom(msg.sender, userDebtValue)`
+           - Revert with `USDL__InsufficientBalance()` if liquidator's USDL balance < debt
+           - Revert with `USDL__InsufficientAllowance()` if allowance < debt
+           - Burn debt amount from liquidator: `i_usdl.burnFrom(msg.sender, userDebtValue)`
            - Clear user's debt: subtract their shares from `totalDebtShares`, set their shares to 0
            - Calculate collateral for liquidator:
              - `collateralToCoverDebt = (userDebtValue * userCollateral) / collateralValue`
@@ -665,7 +665,7 @@ checkpoints:
            - Update user's collateral: `s_userCollateral[user] = userCollateral - amountForLiquidator`
            - Transfer ETH: `(bool sent, ) = payable(msg.sender).call{value: amountForLiquidator}("")`
            - Revert with `Engine__TransferFailed()` if not sent
-           - Emit `Liquidation(user, msg.sender, amountForLiquidator, userDebtValue, i_oracle.getETHMyUSDPrice())`
+           - Emit `Liquidation(user, msg.sender, amountForLiquidator, userDebtValue, i_oracle.getETHUSDLPrice())`
 
         ### Try it out
 
@@ -673,19 +673,19 @@ checkpoints:
 
         1. Run `yarn deploy --reset`
         2. Crank up the Borrow Rate to 1000% or higher (in **Rate Controls**)
-        3. Deposit collateral and mint the maximum MyUSD (close to 150% ratio)
+        3. Deposit collateral and mint the maximum USDL (close to 150% ratio)
         4. Open a **private browser tab** to the same page — you'll get a new burner wallet
         5. Give the second wallet ETH using the faucet button (top right)
-        6. Use the **swap** button (in the MyUSD Wallet section) to exchange ETH for enough MyUSD to cover the first account's debt (get more than what was minted — interest has accrued!)
+        6. Use the **swap** button (in the USDL Wallet section) to exchange ETH for enough USDL to cover the first account's debt (get more than what was minted — interest has accrued!)
         7. Check if the first account is liquidatable — the **Liquidate** button should be enabled
         8. Click it with your second account to liquidate the position
 
-        > Notice: the first account still has the MyUSD they originally minted. The liquidator paid the debt and claimed the collateral + bonus.
+        > Notice: the first account still has the USDL they originally minted. The liquidator paid the debt and claimed the collateral + bonus.
 
         Say **"check"** when you're ready!
       file:
-        hardhat: "packages/hardhat/contracts/MyUSDEngine.sol"
-        foundry: "packages/foundry/contracts/MyUSDEngine.sol"
+        hardhat: "packages/hardhat/contracts/USDLEngine.sol"
+        foundry: "packages/foundry/contracts/USDLEngine.sol"
       test:
         hardhat: "yarn test --grep 'Liquidation'"
         foundry: "yarn test --match-test 'Checkpoint4'"
@@ -721,10 +721,10 @@ checkpoints:
               uint256 userCollateral = s_userCollateral[user];
               uint256 collateralValue = calculateCollateralValue(user);
 
-              if (i_myUSD.balanceOf(msg.sender) < userDebtValue) revert MyUSD__InsufficientBalance();
-              if (i_myUSD.allowance(msg.sender, address(this)) < userDebtValue) revert MyUSD__InsufficientAllowance();
+              if (i_usdl.balanceOf(msg.sender) < userDebtValue) revert USDL__InsufficientBalance();
+              if (i_usdl.allowance(msg.sender, address(this)) < userDebtValue) revert USDL__InsufficientAllowance();
 
-              i_myUSD.burnFrom(msg.sender, userDebtValue);
+              i_usdl.burnFrom(msg.sender, userDebtValue);
               totalDebtShares -= s_userDebtShares[user];
               s_userDebtShares[user] = 0;
 
@@ -737,7 +737,7 @@ checkpoints:
               (bool sent, ) = payable(msg.sender).call{value: amountForLiquidator}("");
               if (!sent) revert Engine__TransferFailed();
 
-              emit Liquidation(user, msg.sender, amountForLiquidator, userDebtValue, i_oracle.getETHMyUSDPrice());
+              emit Liquidation(user, msg.sender, amountForLiquidator, userDebtValue, i_oracle.getETHUSDLPrice());
           }
           ```
       solution: |
@@ -755,15 +755,15 @@ checkpoints:
             uint256 userCollateral = s_userCollateral[user];
             uint256 collateralValue = calculateCollateralValue(user);
 
-            if (i_myUSD.balanceOf(msg.sender) < userDebtValue) {
-                revert MyUSD__InsufficientBalance();
+            if (i_usdl.balanceOf(msg.sender) < userDebtValue) {
+                revert USDL__InsufficientBalance();
             }
 
-            if (i_myUSD.allowance(msg.sender, address(this)) < userDebtValue) {
-                revert MyUSD__InsufficientAllowance();
+            if (i_usdl.allowance(msg.sender, address(this)) < userDebtValue) {
+                revert USDL__InsufficientAllowance();
             }
 
-            i_myUSD.burnFrom(msg.sender, userDebtValue);
+            i_usdl.burnFrom(msg.sender, userDebtValue);
 
             totalDebtShares -= s_userDebtShares[user];
             s_userDebtShares[user] = 0;
@@ -781,7 +781,7 @@ checkpoints:
             (bool sent, ) = payable(msg.sender).call{ value: amountForLiquidator }("");
             if (!sent) revert Engine__TransferFailed();
 
-            emit Liquidation(user, msg.sender, amountForLiquidator, userDebtValue, i_oracle.getETHMyUSDPrice());
+            emit Liquidation(user, msg.sender, amountForLiquidator, userDebtValue, i_oracle.getETHUSDLPrice());
         }
 
   # ============================================================
@@ -794,21 +794,21 @@ checkpoints:
     context: |
       ## The Two Levers: Borrow Rate & Savings Rate
 
-      So far, borrowers create sell pressure when they swap MyUSD for ETH. The borrow rate alone can only **destroy demand** (defensive). But to truly maintain the peg, we also need to **create demand**.
+      So far, borrowers create sell pressure when they swap USDL for ETH. The borrow rate alone can only **destroy demand** (defensive). But to truly maintain the peg, we also need to **create demand**.
 
-      That's where the **savings rate** comes in. Users can stake MyUSD in `MyUSDStaking.sol` to earn yield, making holding MyUSD attractive. This creates buy pressure — people buy MyUSD specifically to stake and earn interest.
+      That's where the **savings rate** comes in. Users can stake USDL in `USDLStaking.sol` to earn yield, making holding USDL attractive. This creates buy pressure — people buy USDL specifically to stake and earn interest.
 
       ### The Critical Constraint
 
       The borrow rate must **always be >= the savings rate**. Why? Because:
-      - All MyUSD in existence was borrowed (someone deposited ETH and minted it)
-      - Every MyUSD is paying the borrow rate to the protocol
+      - All USDL in existence was borrowed (someone deposited ETH and minted it)
+      - Every USDL is paying the borrow rate to the protocol
       - The protocol pays the savings rate to stakers
       - If savings rate > borrow rate, the protocol pays out more than it earns — unsustainable!
 
       ### The Two Levers for Peg Stability
-      - **MyUSD < $1**: Increase savings rate (attract buyers) or increase borrow rate (discourage minting)
-      - **MyUSD > $1**: Decrease savings rate or decrease borrow rate
+      - **USDL < $1**: Increase savings rate (attract buyers) or increase borrow rate (discourage minting)
+      - **USDL > $1**: Decrease savings rate or decrease borrow rate
 
       You need to add one line to `setBorrowRate` to enforce this constraint.
 
@@ -849,8 +849,8 @@ checkpoints:
 
         Say **"check"** when you're ready!
       file:
-        hardhat: "packages/hardhat/contracts/MyUSDEngine.sol"
-        foundry: "packages/foundry/contracts/MyUSDEngine.sol"
+        hardhat: "packages/hardhat/contracts/USDLEngine.sol"
+        foundry: "packages/foundry/contracts/USDLEngine.sol"
       test:
         hardhat: "yarn test --grep 'Borrow Rate Management'"
         foundry: "yarn test --match-test 'Checkpoint5'"
@@ -875,7 +875,7 @@ checkpoints:
         }
 
 completion_message: |
-  Congratulations! You've built the core engine for **MyUSD**, a crypto-backed stablecoin!
+  Congratulations! You've built the core engine for **USDL**, a crypto-backed stablecoin!
 
   You implemented:
   - **Collateral management** with oracle-based USD valuation
@@ -892,7 +892,7 @@ completion_message: |
 
   ## Next: Market Simulation (Borrowers Only)
 
-  Now see your stablecoin in action! The `yarn simulate` script runs automated bots that simulate market participants. At first, these bots only want **leveraged ETH exposure** — they deposit collateral, mint MyUSD, and swap it for more ETH on the DEX. This creates pure sell pressure.
+  Now see your stablecoin in action! The `yarn simulate` script runs automated bots that simulate market participants. At first, these bots only want **leveraged ETH exposure** — they deposit collateral, mint USDL, and swap it for more ETH on the DEX. This creates pure sell pressure.
 
   1. Make sure `yarn chain` is running
   2. Run `yarn deploy --reset` (or set the borrow rate back to 0)
@@ -903,8 +903,8 @@ completion_message: |
   - Their activity (deposits, mints, swaps)
 
   Watch the **frontend** to see:
-  - MyUSD losing its peg as bots dump it for ETH
-  - Total supply of MyUSD increasing
+  - USDL losing its peg as bots dump it for ETH
+  - Total supply of USDL increasing
 
   Now **raise the borrow rate to 30%** from the frontend (in Rate Controls).
 
@@ -917,33 +917,33 @@ completion_message: |
 
   ## Next: The Savings Rate — Creating Demand
 
-  So far borrowers create sell pressure when they swap MyUSD for ETH. The borrow rate can only **destroy demand** (defensive). To truly maintain the peg, we also need to **create demand**.
+  So far borrowers create sell pressure when they swap USDL for ETH. The borrow rate can only **destroy demand** (defensive). To truly maintain the peg, we also need to **create demand**.
 
-  That's where the **savings rate** comes in. Users can stake MyUSD in `MyUSDStaking.sol` to earn yield, making holding MyUSD attractive. This creates buy pressure — people buy MyUSD specifically to stake and earn interest.
+  That's where the **savings rate** comes in. Users can stake USDL in `USDLStaking.sol` to earn yield, making holding USDL attractive. This creates buy pressure — people buy USDL specifically to stake and earn interest.
 
   Here's how the system fits together:
-  - **`MyUSDStaking.sol`**: Users approve and stake MyUSD to earn the savings rate yield
-  - **`RateController.sol`**: Controls both `MyUSDEngine.setBorrowRate()` and `MyUSDStaking.setSavingsRate()` — you can set both from the frontend
-  - **The constraint you just built**: Borrow rate must always be >= savings rate, because all MyUSD in existence is paying the borrow rate, and stakers are paid the savings rate. If savings > borrow, the protocol pays out more than it earns
+  - **`USDLStaking.sol`**: Users approve and stake USDL to earn the savings rate yield
+  - **`RateController.sol`**: Controls both `USDLEngine.setBorrowRate()` and `USDLStaking.setSavingsRate()` — you can set both from the frontend
+  - **The constraint you just built**: Borrow rate must always be >= savings rate, because all USDL in existence is paying the borrow rate, and stakers are paid the savings rate. If savings > borrow, the protocol pays out more than it earns
 
   The two levers for peg stability:
-  - **MyUSD < $1**: Increase savings rate (attract buyers) or increase borrow rate (discourage minting)
-  - **MyUSD > $1**: Decrease savings rate or decrease borrow rate
+  - **USDL < $1**: Increase savings rate (attract buyers) or increase borrow rate (discourage minting)
+  - **USDL > $1**: Decrease savings rate or decrease borrow rate
 
   On the frontend, you can see options to set both rates in **Rate Controls**. The `DEX.sol` provides the market where supply and demand play out — the price there reflects the balance of these forces.
 
   ## Next: Finding Equilibrium
 
-  The `yarn simulate` bots also include **savers** — actors who watch the savings rate. If it's attractive enough, they buy MyUSD from the DEX and stake it in `MyUSDStaking.sol` to earn yield. This creates **buy pressure** to counterbalance the borrowers' sell pressure.
+  The `yarn simulate` bots also include **savers** — actors who watch the savings rate. If it's attractive enough, they buy USDL from the DEX and stake it in `USDLStaking.sol` to earn yield. This creates **buy pressure** to counterbalance the borrowers' sell pressure.
 
   Now run the automated rate controller alongside the simulation:
 
   1. Run `yarn simulate` (if not already running)
   2. In another terminal, run `yarn interest-rate-controller`
 
-  This script automatically adjusts both borrow and savings rates to stabilize MyUSD near $1:
-  - **MyUSD < $1**: Increase savings rate (attract buyers) or increase borrow rate (discourage minting)
-  - **MyUSD > $1**: Decrease savings rate or decrease borrow rate
+  This script automatically adjusts both borrow and savings rates to stabilize USDL near $1:
+  - **USDL < $1**: Increase savings rate (attract buyers) or increase borrow rate (discourage minting)
+  - **USDL > $1**: Decrease savings rate or decrease borrow rate
 
   It starts in **TEMPERED** mode — raising the borrow rate until the peg stabilizes. Once stable, it switches to **GROWTH** mode — lowering the borrow rate and raising the savings rate to attract more users while maintaining the peg.
 
@@ -952,12 +952,12 @@ completion_message: |
   - The price should find equilibrium, oscillating near the peg
   - You'll see both borrowers and savers active — the two sides of the market
 
-  Try experimenting: manually set extreme borrow/savings rates while `yarn simulate` runs. How does the MyUSD price react?
+  Try experimenting: manually set extreme borrow/savings rates while `yarn simulate` runs. How does the USDL price react?
 
   ### Key Takeaways
 
   - **Demand Destruction**: High borrow rates make minting expensive, reducing supply and sell pressure
-  - **Demand Creation**: Attractive savings rates make holding MyUSD desirable, increasing buy pressure
+  - **Demand Creation**: Attractive savings rates make holding USDL desirable, increasing buy pressure
   - **Dynamic Equilibrium**: The "correct" rates aren't fixed — they depend on market conditions. The system constantly seeks balance by adjusting incentives
   - **Market Unpredictability**: We simulated just two types of participants. A real market has thousands or millions, all reacting to different incentives in bull and bear markets
 

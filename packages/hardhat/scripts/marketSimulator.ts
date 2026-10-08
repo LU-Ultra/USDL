@@ -1,12 +1,12 @@
 /* eslint-disable @typescript-eslint/no-unused-vars */
 import { HDNodeWallet } from "ethers";
 import { network } from "hardhat";
-import type { DEX, MyUSDEngine, MyUSD, MyUSDStaking, Oracle } from "../types/ethers-contracts/index.js";
+import type { DEX, USDLEngine, USDL, USDLStaking, Oracle } from "../types/ethers-contracts/index.js";
 import {
   DEX__factory,
-  MyUSDEngine__factory,
-  MyUSD__factory,
-  MyUSDStaking__factory,
+  USDLEngine__factory,
+  USDL__factory,
+  USDLStaking__factory,
   Oracle__factory,
 } from "../types/ethers-contracts/index.js";
 import blessed from "blessed";
@@ -67,7 +67,7 @@ function initializeUI() {
   // Create blessed screen
   screen = blessed.screen({
     smartCSR: true,
-    title: "MyUSD Stablecoin Market Simulator",
+    title: "USDL Stablecoin Market Simulator",
   });
 
   // Help user exit
@@ -142,7 +142,7 @@ function initializeUI() {
   });
 
   stakersTable.setData({
-    headers: ["Address", "MyUSD Bal", "Staked", "Min Rate", "Status"],
+    headers: ["Address", "USDL Bal", "Staked", "Min Rate", "Status"],
     data: [["Loading...", "...", "...", "...", "..."]],
   });
 
@@ -211,7 +211,7 @@ function getBorrowerStatus(
 // Get staker status description based on conditions
 function getStakerStatus(
   staker: StakerProfile,
-  myUSDBalance: bigint,
+  usdlBalance: bigint,
   stakedShares: bigint,
   currentSavingsRate: number,
 ): string {
@@ -233,7 +233,7 @@ function getStakerStatus(
   }
 
   // No staked position
-  if (myUSDBalance > ethers.parseEther("0.5")) {
+  if (usdlBalance > ethers.parseEther("0.5")) {
     if (currentSavingsRate >= staker.minAcceptableRate) {
       // Positive rate difference means attractive staking opportunity
       const rateDifference = currentSavingsRate - staker.minAcceptableRate;
@@ -250,7 +250,7 @@ function getStakerStatus(
     }
   } else {
     if (currentSavingsRate >= staker.minAcceptableRate) {
-      return "{cyan-fg}Acquiring MyUSD";
+      return "{cyan-fg}Acquiring USDL";
     } else {
       return "{gray-fg}Waiting for better rates";
     }
@@ -261,18 +261,18 @@ function getStakerStatus(
 async function updateUI(
   dex: DEX,
   ethPrice: bigint,
-  engine: MyUSDEngine,
-  myUSD: MyUSD,
-  staking: MyUSDStaking,
+  engine: USDLEngine,
+  usdl: USDL,
+  staking: USDLStaking,
   borrowers: BorrowerProfile[],
   stakers: StakerProfile[],
 ) {
   try {
     // Get price data
-    const ethToMyUSDPrice = await dex.currentPrice();
-    const ethToMyUSDPriceNum = Number(ethers.formatEther(ethToMyUSDPrice));
+    const ethToUSDLPrice = await dex.currentPrice();
+    const ethToUSDLPriceNum = Number(ethers.formatEther(ethToUSDLPrice));
     const ethPriceDecimal = Number(ethers.formatEther(ethPrice));
-    const myUSDPriceInUSD = 1 / (ethToMyUSDPriceNum / ethPriceDecimal);
+    const usdlPriceInUSD = 1 / (ethToUSDLPriceNum / ethPriceDecimal);
 
     // Get common data needed by multiple sections
     const savingsRate = Number(await staking.savingsRate());
@@ -283,8 +283,8 @@ async function updateUI(
     // Update system info
     try {
       systemInfoBox.setContent(
-        `MyUSD Price: {yellow-fg}${myUSDPriceInUSD.toFixed(6)}{/yellow-fg}  |  ` +
-          `ETH Price: {cyan-fg}${ethToMyUSDPriceNum.toFixed(1)} MyUSD{/cyan-fg} | ` +
+        `USDL Price: {yellow-fg}${usdlPriceInUSD.toFixed(6)}{/yellow-fg}  |  ` +
+          `ETH Price: {cyan-fg}${ethToUSDLPriceNum.toFixed(1)} USDL{/cyan-fg} | ` +
           `Savings Rate: {cyan-fg}${savingsRate > 0 ? savingsRate / 100 : 0}% {/cyan-fg}  |  ` +
           `Borrow Rate: {magenta-fg}${borrowRate > 0 ? borrowRate / 100 : 0}% {/magenta-fg}`,
       );
@@ -324,16 +324,16 @@ async function updateUI(
     try {
       const stakerRows: string[][] = [];
       for (const staker of stakers) {
-        const myUSDBalance = await myUSD.balanceOf(staker.wallet.address);
+        const usdlBalance = await usdl.balanceOf(staker.wallet.address);
         const stakedShares = await staking.userShares(staker.wallet.address);
         const stakedValue = (stakedShares * stakingExchangeRate) / BigInt(1e18);
 
         // Get status text based on staker's position and market conditions
-        const statusText = getStakerStatus(staker, myUSDBalance, stakedShares, savingsRate);
+        const statusText = getStakerStatus(staker, usdlBalance, stakedShares, savingsRate);
 
         stakerRows.push([
           staker.wallet.address.slice(0, 6) + "...",
-          Number(ethers.formatEther(myUSDBalance).split(".")[0]).toLocaleString(),
+          Number(ethers.formatEther(usdlBalance).split(".")[0]).toLocaleString(),
           Number(ethers.formatEther(stakedValue).split(".")[0]).toLocaleString(),
           (staker.minAcceptableRate / 100).toFixed(1) + "%",
           statusText,
@@ -341,7 +341,7 @@ async function updateUI(
       }
 
       stakersTable.setData({
-        headers: ["Address", "MyUSD Bal", "Staked", "Min Rate", "Status"],
+        headers: ["Address", "USDL Bal", "Staked", "Min Rate", "Status"],
         data: stakerRows.length > 0 ? stakerRows : [["-", "-", "-", "-", "No stakers"]],
       });
       stakersTable.show();
@@ -426,66 +426,66 @@ async function setupAccounts(): Promise<SimulatedAccount[]> {
 
 // Simulate borrower behavior
 async function simulateBorrowing(
-  engine: MyUSDEngine,
-  myUSD: MyUSD,
+  engine: USDLEngine,
+  usdl: USDL,
   dex: DEX,
   borrowers: BorrowerProfile[],
   currentBorrowRate: number,
 ) {
   for (const borrower of borrowers) {
     const engineWithBorrower = engine.connect(borrower.wallet);
-    const myUSDWithBorrower = myUSD.connect(borrower.wallet);
+    const usdlWithBorrower = usdl.connect(borrower.wallet);
 
     // Get current debt and collateral
     const collateralValue = await engine.calculateCollateralValue(borrower.wallet.address);
     const currentDebt = await engine.getCurrentDebtValue(borrower.wallet.address);
     // Calculate fixed amount to keep based on borrower's profile
-    const baseAmount = ethers.parseEther("100000"); // Base amount of 100000 MyUSD
+    const baseAmount = ethers.parseEther("100000"); // Base amount of 100000 USDL
     const riskMultiplier = (borrower.debtTolerance / 100) * (1 - borrower.rateSensitivity / 200);
     const amountToKeep = (baseAmount * BigInt(Math.floor(riskMultiplier * 100))) / 100n;
     // Check if borrower should pay down debt due to high rates
     if (currentDebt > amountToKeep && currentBorrowRate > borrower.maxAcceptableRate) {
-      const myUSDBalance = await myUSD.balanceOf(borrower.wallet.address);
+      const usdlBalance = await usdl.balanceOf(borrower.wallet.address);
 
-      if (myUSDBalance > ethers.parseEther("10")) {
+      if (usdlBalance > ethers.parseEther("10")) {
         try {
           // Calculate amount to burn (current debt - amount to keep)
           let amountToBurn = currentDebt - amountToKeep;
           if (amountToBurn < 0n) amountToBurn = 0n;
-          if (amountToBurn > myUSDBalance) {
-            amountToBurn = myUSDBalance;
+          if (amountToBurn > usdlBalance) {
+            amountToBurn = usdlBalance;
           }
 
           // Approve and burn debt
-          await myUSDWithBorrower.approve(engine.target, amountToBurn);
+          await usdlWithBorrower.approve(engine.target, amountToBurn);
           await engineWithBorrower.repayUpTo(amountToBurn);
 
           logActivity(
-            `Borrower ${borrower.wallet.address.slice(0, 6)}... repaid ${ethers.formatEther(amountToBurn).slice(0, 6)} MyUSD ` +
-              `(keeping ${ethers.formatEther(amountToKeep).slice(0, 6)} MyUSD)`,
+            `Borrower ${borrower.wallet.address.slice(0, 6)}... repaid ${ethers.formatEther(amountToBurn).slice(0, 6)} USDL ` +
+              `(keeping ${ethers.formatEther(amountToKeep).slice(0, 6)} USDL)`,
           );
         } catch (error: any) {
           logActivity(`Failed to repay debt for ${borrower.wallet.address.slice(0, 6)}...`);
         }
         continue;
       } else {
-        // If no MyUSD balance but rates are too high, try to get some by swapping ETH
+        // If no USDL balance but rates are too high, try to get some by swapping ETH
         const ethBalance = await ethers.provider.getBalance(borrower.wallet.address);
         const safeEthToSwap = ethBalance - ethers.parseEther("1"); // Keep 1 ETH minimum
 
         if (safeEthToSwap > 0n) {
           try {
-            // Swap ETH for MyUSD to repay
+            // Swap ETH for USDL to repay
             const dexWithBorrower = dex.connect(borrower.wallet);
             await dexWithBorrower.swap(safeEthToSwap, { value: safeEthToSwap });
 
             logActivity(
-              `Borrower ${borrower.wallet.address.slice(0, 6)}... swapped ${ethers.formatEther(safeEthToSwap).slice(0, 6)} ETH for MyUSD ` +
+              `Borrower ${borrower.wallet.address.slice(0, 6)}... swapped ${ethers.formatEther(safeEthToSwap).slice(0, 6)} ETH for USDL ` +
                 `to repay debt (rate: ${currentBorrowRate} > ${borrower.maxAcceptableRate})`,
             );
             continue;
           } catch (error: any) {
-            logActivity(`Failed to swap ETH for MyUSD for ${borrower.wallet.address.slice(0, 6)}...`);
+            logActivity(`Failed to swap ETH for USDL for ${borrower.wallet.address.slice(0, 6)}...`);
           }
         }
       }
@@ -535,7 +535,7 @@ async function simulateBorrowing(
       if (borrowAmount > 0n) {
         try {
           // Leveraged borrowing strategy - performs one leverage cycle each time
-          await executeBorrowing(borrower, engine, myUSD, dex, borrowAmount, borrowingWillingness, currentBorrowRate);
+          await executeBorrowing(borrower, engine, usdl, dex, borrowAmount, borrowingWillingness, currentBorrowRate);
         } catch (error: any) {
           logActivity(
             `Failed to execute leveraged borrowing for ${borrower.wallet.address.slice(0, 6)}... Error: ${error}`,
@@ -549,15 +549,15 @@ async function simulateBorrowing(
 // Execute single-cycle leveraged borrowing strategy
 async function executeBorrowing(
   borrower: BorrowerProfile,
-  engine: MyUSDEngine,
-  myUSD: MyUSD,
+  engine: USDLEngine,
+  usdl: USDL,
   dex: DEX,
   borrowAmount: bigint,
   borrowingWillingness: number,
   currentBorrowRate: number,
 ) {
   const engineWithBorrower = engine.connect(borrower.wallet);
-  const myUSDWithBorrower = myUSD.connect(borrower.wallet);
+  const usdlWithBorrower = usdl.connect(borrower.wallet);
   const dexWithBorrower = dex.connect(borrower.wallet);
 
   // If remaining amount is too small, don't bother
@@ -566,16 +566,16 @@ async function executeBorrowing(
   }
 
   try {
-    // 1. Borrow MyUSD
-    await engineWithBorrower.mintMyUSD(borrowAmount);
+    // 1. Borrow USDL
+    await engineWithBorrower.mintUSDL(borrowAmount);
 
-    // 2. Approve and swap MyUSD for ETH (percent based on risk appetite)
+    // 2. Approve and swap USDL for ETH (percent based on risk appetite)
     let percentToSwapNum = 60 + borrower.debtTolerance * 0.3 - borrower.rateSensitivity * 0.2;
     percentToSwapNum = Math.max(10, Math.min(100, percentToSwapNum));
     const percentToSwap = BigInt(Math.round(percentToSwapNum));
-    const myUSDToSwap = (borrowAmount * percentToSwap) / 100n;
-    await myUSDWithBorrower.approve(dex.target, myUSDToSwap);
-    const swapTx = await dexWithBorrower.swap(myUSDToSwap);
+    const usdlToSwap = (borrowAmount * percentToSwap) / 100n;
+    await usdlWithBorrower.approve(dex.target, usdlToSwap);
+    const swapTx = await dexWithBorrower.swap(usdlToSwap);
     await swapTx.wait();
 
     // 4. Add the ETH as collateral (use 90% of balance above 1 ETH safety margin)
@@ -593,7 +593,7 @@ async function executeBorrowing(
     }
 
     logActivity(
-      `Borrower ${borrower.wallet.address.slice(0, 6)}... leveraged borrowed ${ethers.formatEther(borrowAmount).slice(0, 6)} MyUSD ` +
+      `Borrower ${borrower.wallet.address.slice(0, 6)}... leveraged borrowed ${ethers.formatEther(borrowAmount).slice(0, 6)} USDL ` +
         `(rate: ${currentBorrowRate} bps, willingness: ${(borrowingWillingness * 100).toFixed(1)}%)`,
     );
   } catch (error: any) {
@@ -604,18 +604,18 @@ async function executeBorrowing(
 // Simulate staker behavior
 async function simulateStaking(
   dex: DEX,
-  myUSD: MyUSD,
-  staking: MyUSDStaking,
+  usdl: USDL,
+  staking: USDLStaking,
   stakers: StakerProfile[],
   currentSavingsRate: number,
 ) {
   for (const staker of stakers) {
-    // Get current MyUSD balance and staked amount
-    const myUSDBalance = await myUSD.balanceOf(staker.wallet.address);
+    // Get current USDL balance and staked amount
+    const usdlBalance = await usdl.balanceOf(staker.wallet.address);
     const stakedShares = await staking.userShares(staker.wallet.address);
 
     const stakingWithStaker = staking.connect(staker.wallet);
-    const myUSDWithStaker = myUSD.connect(staker.wallet);
+    const usdlWithStaker = usdl.connect(staker.wallet);
     const dexWithStaker = dex.connect(staker.wallet);
 
     // Determine if staker should unstake based on rate
@@ -635,44 +635,44 @@ async function simulateStaking(
         logActivity(`Failed to unstake for ${staker.wallet.address.slice(0, 6)}...`);
       }
 
-      // Sell ALL MyUSD for ETH if unstaked or have existing balance
-      const sellableBalance = await myUSD.balanceOf(staker.wallet.address);
+      // Sell ALL USDL for ETH if unstaked or have existing balance
+      const sellableBalance = await usdl.balanceOf(staker.wallet.address);
 
       if (sellableBalance > 0n) {
         try {
-          // Swap ALL MyUSD for ETH when rate is below minimum
+          // Swap ALL USDL for ETH when rate is below minimum
           if (sellableBalance > 0n) {
-            // Approve and swap MyUSD for ETH
-            await myUSDWithStaker.approve(dex.target, sellableBalance);
+            // Approve and swap USDL for ETH
+            await usdlWithStaker.approve(dex.target, sellableBalance);
             await dexWithStaker.swap(sellableBalance);
 
             logActivity(
-              `Staker ${staker.wallet.address.slice(0, 6)}... sold ALL MyUSD (${ethers.formatEther(sellableBalance).slice(0, 6)}) for ETH ` +
+              `Staker ${staker.wallet.address.slice(0, 6)}... sold ALL USDL (${ethers.formatEther(sellableBalance).slice(0, 6)}) for ETH ` +
                 `(rate too low: ${currentSavingsRate} < ${staker.minAcceptableRate} bps)`,
             );
           }
         } catch (error: any) {
-          logActivity(`Failed to sell MyUSD for ${staker.wallet.address.slice(0, 6)}...: ${error}`);
+          logActivity(`Failed to sell USDL for ${staker.wallet.address.slice(0, 6)}...: ${error}`);
         }
       }
 
       continue;
     }
 
-    // Determine if staker should acquire MyUSD
+    // Determine if staker should acquire USDL
     const ethReserve = ethers.parseEther("0.1"); // For gas
-    if (myUSDBalance < ethReserve && currentSavingsRate >= staker.minAcceptableRate) {
+    if (usdlBalance < ethReserve && currentSavingsRate >= staker.minAcceptableRate) {
       const ethBalance = await ethers.provider.getBalance(staker.wallet.address);
       if (ethBalance > ethReserve) {
         try {
-          // Swap ETH for MyUSD
+          // Swap ETH for USDL
           const ethToSwap = ethBalance - ethReserve;
           await dexWithStaker.swap(ethToSwap, { value: ethToSwap });
           logActivity(
-            `Staker ${staker.wallet.address.slice(0, 6)}... swapped ${ethers.formatEther(ethToSwap).slice(0, 6)} ETH for MyUSD`,
+            `Staker ${staker.wallet.address.slice(0, 6)}... swapped ${ethers.formatEther(ethToSwap).slice(0, 6)} ETH for USDL`,
           );
         } catch (error: any) {
-          logActivity(`Failed to swap ETH for MyUSD for ${staker.wallet.address.slice(0, 6)}...`);
+          logActivity(`Failed to swap ETH for USDL for ${staker.wallet.address.slice(0, 6)}...`);
         }
         continue;
       }
@@ -687,15 +687,15 @@ async function simulateStaking(
       const stakingWillingness = (staker.yieldSensitivity / 100) * rateAppeal;
 
       // Calculate amount to stake
-      const amountToStake = (myUSDBalance * BigInt(Math.floor(stakingWillingness * 100))) / 100n;
+      const amountToStake = (usdlBalance * BigInt(Math.floor(stakingWillingness * 100))) / 100n;
 
       if (amountToStake > 0n) {
         try {
           // Approve and stake
-          await myUSDWithStaker.approve(staking.target, amountToStake);
+          await usdlWithStaker.approve(staking.target, amountToStake);
           await stakingWithStaker.stake(amountToStake);
           logActivity(
-            `Staker ${staker.wallet.address.slice(0, 6)}... staked ${ethers.formatEther(amountToStake).slice(0, 6)} MyUSD ` +
+            `Staker ${staker.wallet.address.slice(0, 6)}... staked ${ethers.formatEther(amountToStake).slice(0, 6)} USDL ` +
               `(rate: ${currentSavingsRate} bps, willingness: ${(stakingWillingness * 100).toFixed(1)}%)`,
           );
         } catch (error: any) {
@@ -710,9 +710,9 @@ async function simulateStaking(
 async function simulateMarket(
   dex: DEX,
   ethPrice: bigint,
-  engine: MyUSDEngine,
-  myUSD: MyUSD,
-  staking: MyUSDStaking,
+  engine: USDLEngine,
+  usdl: USDL,
+  staking: USDLStaking,
   accounts: SimulatedAccount[],
   deployer: any,
 ) {
@@ -731,7 +731,7 @@ async function simulateMarket(
   logActivity(`Initial rates - Savings: ${currentSavingsRate} bps, Borrow: ${currentBorrowRate} bps`);
 
   // Start UI update timer
-  setInterval(() => updateUI(dex, ethPrice, engine, myUSD, staking, borrowers, stakers), UI_REFRESH_MS);
+  setInterval(() => updateUI(dex, ethPrice, engine, usdl, staking, borrowers, stakers), UI_REFRESH_MS);
 
   // Run market actions on interval
   setInterval(async () => {
@@ -745,12 +745,12 @@ async function simulateMarket(
 
       // Simulate borrower behavior (50% chance each cycle)
       if (Math.random() < 0.5) {
-        await simulateBorrowing(engine, myUSD, dex, borrowers, latestBorrowRate);
+        await simulateBorrowing(engine, usdl, dex, borrowers, latestBorrowRate);
       }
 
       // Simulate staker behavior (50% chance each cycle)
       if (Math.random() < 0.5) {
-        await simulateStaking(dex, myUSD, staking, stakers, latestSavingsRate);
+        await simulateStaking(dex, usdl, staking, stakers, latestSavingsRate);
       }
     } catch (error: any) {
       logActivity(`Error in market simulation interval: ${error}`);
@@ -768,16 +768,16 @@ async function main() {
     const dex: DEX = DEX__factory.connect(getDeployedAddress("DEX"), deployer);
     const oracle: Oracle = Oracle__factory.connect(getDeployedAddress("Oracle"), deployer);
     const ethPrice = await oracle.getETHUSDPrice();
-    const engine: MyUSDEngine = MyUSDEngine__factory.connect(getDeployedAddress("MyUSDEngine"), deployer);
-    const myUSD: MyUSD = MyUSD__factory.connect(getDeployedAddress("MyUSD"), deployer);
-    const staking: MyUSDStaking = MyUSDStaking__factory.connect(getDeployedAddress("MyUSDStaking"), deployer);
+    const engine: USDLEngine = USDLEngine__factory.connect(getDeployedAddress("USDLEngine"), deployer);
+    const usdl: USDL = USDL__factory.connect(getDeployedAddress("USDL"), deployer);
+    const staking: USDLStaking = USDLStaking__factory.connect(getDeployedAddress("USDLStaking"), deployer);
 
     logActivity("Connected to deployed contracts");
     const accounts = await setupAccounts();
     logActivity("Created simulated accounts");
 
     // Start the market simulation
-    await simulateMarket(dex, ethPrice, engine, myUSD, staking, accounts, deployer);
+    await simulateMarket(dex, ethPrice, engine, usdl, staking, accounts, deployer);
   } catch (error: any) {
     logActivity(`Fatal error: ${error}`);
     process.exit(1);

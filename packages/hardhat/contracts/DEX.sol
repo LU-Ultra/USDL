@@ -4,7 +4,7 @@ pragma solidity ^0.8.20;
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 /**
- * @notice Simple DEX contract that allows users to swap ETH for MyUSD and MyUSD for ETH
+ * @notice Simple DEX contract that allows users to swap ETH for USDL and USDL for ETH
  */
 contract DEX {
     /* ========== GLOBAL VARIABLES ========== */
@@ -41,7 +41,7 @@ contract DEX {
     /* ========== MUTATIVE FUNCTIONS ========== */
 
     /**
-     * @notice initializes amount of tokens that will be transferred to the DEX itself from the erc20 contract. Loads contract up with both ETH and MyUSD.
+     * @notice initializes amount of tokens that will be transferred to the DEX itself from the erc20 contract. Loads contract up with both ETH and USDL.
      * @param tokens amount to be transferred to DEX
      * @return totalLiquidity is the number of LPTs minting as a result of deposits made to DEX contract
      * NOTE: since ratio is 1:1, this is fine to initialize the totalLiquidity as equal to eth balance of contract.
@@ -65,7 +65,7 @@ contract DEX {
     }
 
     /**
-     * @notice returns the current price of ETH in $MyUSD
+     * @notice returns the current price of ETH in $USDL
      */
     function currentPrice() public view returns (uint256 _currentPrice) {
         _currentPrice = price(1 ether, address(this).balance, token.balanceOf(address(this)));
@@ -86,7 +86,7 @@ contract DEX {
     }
 
     /**
-     * @notice sends Ether to DEX in exchange for $MyUSD
+     * @notice sends Ether to DEX in exchange for $USDL
      */
     function ethToToken() internal returns (uint256 tokenOutput) {
         require(msg.value > 0, "cannot swap 0 ETH");
@@ -100,7 +100,7 @@ contract DEX {
     }
 
     /**
-     * @notice sends $MyUSD tokens to DEX in exchange for Ether
+     * @notice sends $USDL tokens to DEX in exchange for Ether
      */
     function tokenToEth(uint256 tokenInput) internal returns (uint256 ethOutput) {
         require(tokenInput > 0, "cannot swap 0 tokens");
@@ -116,7 +116,7 @@ contract DEX {
     }
 
     /**
-     * @notice allows users to swap ETH for $MyUSD or $MyUSD for ETH with a single method
+     * @notice allows users to swap ETH for $USDL or $USDL for ETH with a single method
      */
     function swap(uint256 inputAmount) public payable returns (uint256 outputAmount) {
         if (msg.value > 0 && inputAmount == msg.value) {
@@ -128,8 +128,8 @@ contract DEX {
     }
 
     /**
-     * @notice allows deposits of $MyUSD and $ETH to liquidity pool
-     * NOTE: parameter is the msg.value sent with this function call. That amount is used to determine the amount of $MyUSD needed as well and taken from the depositor.
+     * @notice allows deposits of $USDL and $ETH to liquidity pool
+     * NOTE: parameter is the msg.value sent with this function call. That amount is used to determine the amount of $USDL needed as well and taken from the depositor.
      * NOTE: user has to make sure to give DEX approval to spend their tokens on their behalf by calling approve function prior to this function call.
      * NOTE: Equal parts of both assets will be removed from the user's wallet with respect to the price outlined by the AMM.
      */
@@ -154,7 +154,7 @@ contract DEX {
     }
 
     /**
-     * @notice allows withdrawal of $MyUSD and $ETH from liquidity pool
+     * @notice allows withdrawal of $USDL and $ETH from liquidity pool
      * NOTE: with this current code, the msg caller could end up getting very little back if the liquidity is super low in the pool. I guess they could see that with the UI.
      */
     function withdraw(uint256 amount) public returns (uint256 ethAmount, uint256 tokenAmount) {

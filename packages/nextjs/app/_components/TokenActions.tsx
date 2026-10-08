@@ -16,14 +16,14 @@ const TokenActions = () => {
   const swapModalId = `${tokenName}-swap-modal`;
 
   const { data: stablecoinBalance } = useScaffoldReadContract({
-    contractName: "MyUSD",
+    contractName: "USDL",
     functionName: "balanceOf",
     args: [address],
   });
 
-  const { data: ethMyUSDPrice } = useScaffoldReadContract({
+  const { data: ethUSDLPrice } = useScaffoldReadContract({
     contractName: "Oracle",
-    functionName: "getETHMyUSDPrice",
+    functionName: "getETHUSDLPrice",
   });
 
   const { data: ethUSDPrice } = useScaffoldReadContract({
@@ -32,7 +32,7 @@ const TokenActions = () => {
   });
   const ethPriceInUSD = Number(formatEther(ethUSDPrice || 0n));
 
-  const myUSDPrice = 1 / (Number(formatEther(ethMyUSDPrice || 0n)) / ethPriceInUSD);
+  const usdlPrice = 1 / (Number(formatEther(ethUSDLPrice || 0n)) / ethPriceInUSD);
 
   const tokenBalance = `${Math.floor(Number(formatEther(stablecoinBalance || 0n)) * 100) / 100}`;
   const { showAnimation } = useAnimationConfig(stablecoinBalance);
@@ -52,8 +52,8 @@ const TokenActions = () => {
           </span>
           <span className="flex items-center text-xs">
             1 {tokenName} = &nbsp;
-            <span className={`transition bg-transparent ${isNaN(myUSDPrice) ? "bg-gray-200 animate-pulse" : ""}`}>
-              {isNaN(myUSDPrice) ? "..." : `$${myUSDPrice.toFixed(5)}`}
+            <span className={`transition bg-transparent ${isNaN(usdlPrice) ? "bg-gray-200 animate-pulse" : ""}`}>
+              {isNaN(usdlPrice) ? "..." : `$${usdlPrice.toFixed(5)}`}
             </span>
           </span>
           <div className="flex gap-2">
@@ -72,7 +72,7 @@ const TokenActions = () => {
       <TokenSwapModal
         tokenBalance={tokenBalance}
         connectedAddress={address || ""}
-        ETHprice={Number(formatEther(ethMyUSDPrice || 0n)).toFixed(2)}
+        ETHprice={Number(formatEther(ethUSDLPrice || 0n)).toFixed(2)}
         modalId={`${swapModalId}`}
       />
     </div>

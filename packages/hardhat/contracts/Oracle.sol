@@ -17,7 +17,7 @@ contract Oracle {
 
     /* ========== PUBLIC FUNCTIONS ========== */
 
-    function getETHMyUSDPrice() public view returns (uint256) {
+    function getETHUSDLPrice() public view returns (uint256) {
         // Oracle just returns price from DEX unless no liquidity is available
         uint256 _price = dexAddress.currentPrice();
         if (_price == 0) {

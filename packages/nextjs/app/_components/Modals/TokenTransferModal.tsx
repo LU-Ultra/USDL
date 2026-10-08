@@ -20,7 +20,7 @@ export const TokenTransferModal = ({ tokenBalance, connectedAddress, modalId }: 
   const [inputAddress, setInputAddress] = useState<AddressType>();
 
   const { writeContractAsync: writeStablecoinContract } = useScaffoldWriteContract({
-    contractName: "MyUSD",
+    contractName: "USDL",
   });
 
   const handleSend = async () => {
@@ -32,7 +32,7 @@ export const TokenTransferModal = ({ tokenBalance, connectedAddress, modalId }: 
       setInputAddress("");
       setSendValue("");
     } catch (error) {
-      console.error("Error sending MyUSD:", error);
+      console.error("Error sending USDL:", error);
     } finally {
       setLoading(false);
     }

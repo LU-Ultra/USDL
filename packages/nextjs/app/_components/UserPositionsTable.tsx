@@ -10,7 +10,7 @@ const UserPositionsTable = () => {
   const { address: connectedAddress } = useAccount();
   const [users, setUsers] = useState<string[]>([]);
   const { data: events, isLoading } = useScaffoldEventHistory({
-    contractName: "MyUSDEngine",
+    contractName: "USDLEngine",
     eventName: "CollateralAdded",
     watch: true,
     blockData: false,
@@ -19,7 +19,7 @@ const UserPositionsTable = () => {
   });
   const { data: ethPrice } = useScaffoldReadContract({
     contractName: "Oracle",
-    functionName: "getETHMyUSDPrice",
+    functionName: "getETHUSDLPrice",
   });
 
   useEffect(() => {
@@ -41,7 +41,7 @@ const UserPositionsTable = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText="Monitor all MyUSDEngine positions and liquidate undercollateralized accounts. Hover over the values (Collateral and Debt) to see the exact amounts."
+        infoText="Monitor all USDLEngine positions and liquidate undercollateralized accounts. Hover over the values (Collateral and Debt) to see the exact amounts."
       />
       <div className="overflow-x-auto">
         <table className="table">

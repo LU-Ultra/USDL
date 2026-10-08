@@ -9,7 +9,7 @@ const CollateralOperations = () => {
   const [withdrawAmount, setWithdrawAmount] = useState("");
 
   const { writeContractAsync: writeStablecoinEngineContract } = useScaffoldWriteContract({
-    contractName: "MyUSDEngine",
+    contractName: "USDLEngine",
   });
 
   const handleAddCollateral = async () => {
@@ -41,7 +41,7 @@ const CollateralOperations = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText="Use these controls to add or withdraw collateral from the MyUSDEngine pool"
+        infoText="Use these controls to add or withdraw collateral from the USDLEngine pool"
       />
       <div className="card-body">
         <h2 className="card-title">Collateral Operations (ETH)</h2>

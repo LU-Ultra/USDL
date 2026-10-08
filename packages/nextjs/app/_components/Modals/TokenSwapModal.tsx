@@ -16,7 +16,7 @@ type TokenSwapModalProps = {
 
 export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modalId }: TokenSwapModalProps) => {
   const [loading, setLoading] = useState(false);
-  const [sellToken, setSellToken] = useState<"MyUSD" | "ETH">("MyUSD");
+  const [sellToken, setSellToken] = useState<"USDL" | "ETH">("USDL");
   const [sellValue, setSellValue] = useState("");
   const [buyValue, setBuyValue] = useState("");
 
@@ -28,12 +28,12 @@ export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modal
     contractName: "DEX",
   });
 
-  const { writeContractAsync: writeMyUSDContract } = useScaffoldWriteContract({
-    contractName: "MyUSD",
+  const { writeContractAsync: writeUSDLContract } = useScaffoldWriteContract({
+    contractName: "USDL",
   });
 
   const handleChangeSellToken = () => {
-    setSellToken(sellToken === "MyUSD" ? "ETH" : "MyUSD");
+    setSellToken(sellToken === "USDL" ? "ETH" : "USDL");
     setSellValue("");
     setBuyValue("");
   };
@@ -60,16 +60,16 @@ export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modal
       setBuyValue(tokenAmount);
     } else {
       setBuyValue(newValue);
-      const ethAmount = sellToken === "MyUSD" ? ethToToken(newValue) : tokenToETH(newValue);
+      const ethAmount = sellToken === "USDL" ? ethToToken(newValue) : tokenToETH(newValue);
       setSellValue(ethAmount);
     }
   };
 
   const handleSwap = async () => {
     setLoading(true);
-    if (sellToken === "MyUSD") {
+    if (sellToken === "USDL") {
       try {
-        await writeMyUSDContract({
+        await writeUSDLContract({
           functionName: "approve",
           args: [stablecoinDEXContract?.address, parseEther(sellValue)],
         });
@@ -81,7 +81,7 @@ export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modal
         setSellValue("");
         setBuyValue("");
       } catch (error) {
-        console.error("Error sending MyUSD:", error);
+        console.error("Error sending USDL:", error);
       } finally {
         setLoading(false);
       }
@@ -96,7 +96,7 @@ export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modal
         setBuyValue("");
         setSellValue("");
       } catch (error) {
-        console.error("Error minting MyUSD:", error);
+        console.error("Error minting USDL:", error);
       } finally {
         setLoading(false);
       }
@@ -141,7 +141,7 @@ export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modal
                   />
                 </div>
                 <span className="basis-2/12 flex justify-center items-center text-md">
-                  {sellToken === "MyUSD" ? "MyUSD" : "ETH"}
+                  {sellToken === "USDL" ? "USDL" : "ETH"}
                 </span>
               </div>
               <div className="flex justify-center">
@@ -156,12 +156,12 @@ export const TokenSwapModal = ({ tokenBalance, connectedAddress, ETHprice, modal
                     onChange={newValue => {
                       handleChangeInput(false, newValue);
                     }}
-                    placeholder={`Buy ${sellToken === "MyUSD" ? "ETH" : "MyUSD"}`}
+                    placeholder={`Buy ${sellToken === "USDL" ? "ETH" : "USDL"}`}
                     disableMultiplyBy1e18
                   />
                 </div>
                 <span className="basis-2/12 flex justify-center items-center text-md">
-                  {sellToken === "MyUSD" ? "ETH" : "MyUSD"}
+                  {sellToken === "USDL" ? "ETH" : "USDL"}
                 </span>
               </div>
               <button className="h-10 btn btn-primary btn-sm px-2" onClick={handleSwap} disabled={loading}>

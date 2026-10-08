@@ -42,14 +42,14 @@ const Home: NextPage = () => {
                 <div className="max-w-3xl">
                   <p className="text-center text-lg mt-8">
                     💰 Build your own decentralized stablecoin! In this challenge, you&apos;ll build the core engine for{" "}
-                    <b>MyUSD</b>, a crypto-backed stablecoin designed to maintain a peg to $1 USD. You&apos;ll get to
+                    <b>USDL</b>, a crypto-backed stablecoin designed to maintain a peg to $1 USD. You&apos;ll get to
                     wear the hat of a DeFi protocol that wants to maintain price stability while also increasing
                     adoption of your stablecoin product, diving deep into concepts like collateralization, minting,
                     burning, interest rates, and liquidations – all crucial components of a robust stablecoin system.
                   </p>
                   <p className="text-center text-lg">
                     🌟 The final deliverable is an app that allows users to mint and manage a decentralized stablecoin
-                    (MyUSD) backed by ETH collateral, with features for depositing collateral, minting/burning tokens,
+                    (USDL) backed by ETH collateral, with features for depositing collateral, minting/burning tokens,
                     managing positions, and participating in liquidations. Deploy your contracts to a testnet then build
                     and upload your app to a public web server. Submit the url on{" "}
                     <a href="https://speedrunethereum.com/" target="_blank" rel="noreferrer" className="underline">

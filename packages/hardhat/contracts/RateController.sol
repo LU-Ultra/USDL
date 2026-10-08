@@ -1,31 +1,31 @@
 // SPDX-License-Identifier: UNLICENSED
 pragma solidity ^0.8.20;
 
-import "./MyUSDStaking.sol";
+import "./USDLStaking.sol";
 
 error Engine__InvalidBorrowRate();
 
 contract RateController {
-    IMyUSDEngine private i_myUSD;
-    MyUSDStaking private i_staking;
+    IUSDLEngine private i_usdl;
+    USDLStaking private i_staking;
 
-    constructor(address _myUSD, address _staking) {
-        i_myUSD = IMyUSDEngine(_myUSD);
-        i_staking = MyUSDStaking(_staking);
+    constructor(address _usdl, address _staking) {
+        i_usdl = IUSDLEngine(_usdl);
+        i_staking = USDLStaking(_staking);
     }
 
     /**
-     * @notice Set the borrow rate for the MyUSD engine
+     * @notice Set the borrow rate for the USDL engine
      * @param newRate The new borrow rate to set
      */
     function setBorrowRate(uint256 newRate) external {
-        try i_myUSD.setBorrowRate(newRate) {} catch {
+        try i_usdl.setBorrowRate(newRate) {} catch {
             revert Engine__InvalidBorrowRate();
         }
     }
 
     /**
-     * @notice Set the savings rate for the MyUSD staking contract
+     * @notice Set the savings rate for the USDL staking contract
      * @param newRate The new savings rate to set
      */
     function setSavingsRate(uint256 newRate) external {

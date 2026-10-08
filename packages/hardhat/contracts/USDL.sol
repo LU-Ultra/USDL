@@ -5,38 +5,38 @@ import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
 import "@openzeppelin/contracts/access/Ownable.sol";
 import "@openzeppelin/contracts/token/ERC20/extensions/ERC20Burnable.sol";
 
-import "./MyUSDStaking.sol";
+import "./USDLStaking.sol";
 
-error MyUSD__InvalidAmount();
-error MyUSD__InsufficientBalance();
-error MyUSD__InsufficientAllowance();
-error MyUSD__InvalidAddress();
-error MyUSD__NotAuthorized();
+error USDL__InvalidAmount();
+error USDL__InsufficientBalance();
+error USDL__InsufficientAllowance();
+error USDL__InvalidAddress();
+error USDL__NotAuthorized();
 
-contract MyUSD is ERC20, ERC20Burnable, Ownable {
+contract USDL is ERC20, ERC20Burnable, Ownable {
     address public stakingContract;
     address public engineContract;
 
-    constructor(address _engineContract, address _stakingContract) ERC20("MyUSD", "MyUSD") Ownable(msg.sender) {
+    constructor(address _engineContract, address _stakingContract) ERC20("USDL", "USDL") Ownable(msg.sender) {
         engineContract = _engineContract;
         stakingContract = _stakingContract;
     }
 
     function burnFrom(address account, uint256 amount) public override {
-        if (msg.sender != engineContract) revert MyUSD__NotAuthorized();
+        if (msg.sender != engineContract) revert USDL__NotAuthorized();
 
         return super.burnFrom(account, amount);
     }
 
     function mintTo(address to, uint256 amount) external returns (bool) {
-        // Only the engine contract can mint because MyUSD must always have collateral backing it
-        if (msg.sender != engineContract) revert MyUSD__NotAuthorized();
+        // Only the engine contract can mint because USDL must always have collateral backing it
+        if (msg.sender != engineContract) revert USDL__NotAuthorized();
 
         if (to == address(0)) {
-            revert MyUSD__InvalidAddress();
+            revert USDL__InvalidAddress();
         }
         if (amount == 0) {
-            revert MyUSD__InvalidAmount();
+            revert USDL__InvalidAmount();
         }
         _mint(to, amount);
         return true;
@@ -52,7 +52,7 @@ contract MyUSD is ERC20, ERC20Burnable, Ownable {
         }
 
         // For the staking contract, return the value of the shares
-        MyUSDStaking staking = MyUSDStaking(stakingContract);
+        USDLStaking staking = USDLStaking(stakingContract);
         return staking.getSharesValue(staking.totalShares());
     }
 
@@ -74,7 +74,7 @@ contract MyUSD is ERC20, ERC20Burnable, Ownable {
      * @dev Overrides the standard totalSupply function to handle virtual balances for staking
      */
     function totalSupply() public view override returns (uint256) {
-        MyUSDStaking staking = MyUSDStaking(stakingContract);
+        USDLStaking staking = USDLStaking(stakingContract);
         uint256 stakedTotalSupply = staking.getSharesValue(staking.totalShares());
         return super.totalSupply() + stakedTotalSupply;
     }

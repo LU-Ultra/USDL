@@ -16,23 +16,23 @@ const MintOperations = () => {
 
   const { data: ethPrice } = useScaffoldReadContract({
     contractName: "Oracle",
-    functionName: "getETHMyUSDPrice",
+    functionName: "getETHUSDLPrice",
   });
 
   const { data: engineContractData } = useScaffoldContract({
-    contractName: "MyUSDEngine",
+    contractName: "USDLEngine",
   });
 
   const { writeContractAsync: writeStablecoinEngineContract } = useScaffoldWriteContract({
-    contractName: "MyUSDEngine",
+    contractName: "USDLEngine",
   });
 
-  const { writeContractAsync: writeMyUSDContract } = useScaffoldWriteContract({
-    contractName: "MyUSD",
+  const { writeContractAsync: writeUSDLContract } = useScaffoldWriteContract({
+    contractName: "USDL",
   });
 
   const { data: currentDebtValue } = useScaffoldReadContract({
-    contractName: "MyUSDEngine",
+    contractName: "USDLEngine",
     functionName: "getCurrentDebtValue",
     args: [address],
   });
@@ -40,18 +40,18 @@ const MintOperations = () => {
   const handleMint = async () => {
     try {
       await writeStablecoinEngineContract({
-        functionName: "mintMyUSD",
+        functionName: "mintUSDL",
         args: [mintAmount ? parseEther(mintAmount) : 0n],
       });
       setMintAmount("");
     } catch (error) {
-      console.error("Error minting MyUSD:", error);
+      console.error("Error minting USDL:", error);
     }
   };
 
   const handleBurn = async () => {
     try {
-      await writeMyUSDContract({
+      await writeUSDLContract({
         functionName: "approve",
         args: [engineContractData?.address, burnAmount ? parseEther(burnAmount) : 0n],
       });
@@ -61,7 +61,7 @@ const MintOperations = () => {
       });
       setBurnAmount("");
     } catch (error) {
-      console.error("Error burning MyUSD:", error);
+      console.error("Error burning USDL:", error);
     }
   };
 
@@ -72,7 +72,7 @@ const MintOperations = () => {
     }
     const extraRepayment = currentDebtValue + parseEther("0.1");
     try {
-      await writeMyUSDContract({
+      await writeUSDLContract({
         functionName: "approve",
         args: [engineContractData?.address, extraRepayment],
       });
@@ -91,7 +91,7 @@ const MintOperations = () => {
       <TooltipInfo
         top={3}
         right={3}
-        infoText={`Use these controls to mint and burn ${tokenName} from the MyUSDEngine pool`}
+        infoText={`Use these controls to mint and burn ${tokenName} from the USDLEngine pool`}
       />
       <div className="card-body">
         <div className="w-full flex justify-between">
