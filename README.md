@@ -30,6 +30,8 @@ Before you begin, you need to install the following tools:
 
 # 💰 USDL Stablecoin
 
+This project started as the Speedrun Ethereum stablecoin starter. See [ACKNOWLEDGEMENT.md](ACKNOWLEDGEMENT.md) for what came from the tutorial and what this group changed.
+
 ![readme-stablecoin](https://raw.githubusercontent.com/scaffold-eth/se-2-challenges/challenge-stablecoins/extension/packages/nextjs/public/hero.png)
 
 🪙 Build your own decentralized stablecoin! In this Speedrun Ethereum challenge, you'll build the core engine for **USDL**, a crypto-backed stablecoin designed to maintain a peg to $1 USD.
