@@ -16,3 +16,9 @@ npx create-eth@2.0.23 -e scaffold-eth/se-2-challenges:challenge-stablecoins chal
 ## What is still the tutorial starter
 
 The contracts, website, and local-chain setup came from the challenge. `USDLEngine.sol` still has the tutorial's empty functions. Filling those in is this group's remaining work. The other contracts were only renamed.
+
+## AI assistance
+
+Cursor was used to rename MyUSD to USDL, to add the workload chart, and to write this acknowledgement. The commits for that work list Cursor as a co-author.
+
+Cursor was not used to implement the stablecoin rules. `USDLEngine.sol` still has the tutorial's empty functions, and the group will write those.
