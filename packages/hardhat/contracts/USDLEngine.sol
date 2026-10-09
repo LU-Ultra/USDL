@@ -82,7 +82,17 @@ contract USDLEngine is Ownable {
     function _getUSDLToShares(uint256 amount) internal view returns (uint256) {}
 
     // Checkpoint 4: Minting USDL & Position Health
-    function getCurrentDebtValue(address user) public view returns (uint256) {}
+    function getCurrentDebtValue(address user) public view returns (uint256) {
+        uint256 userDebtShares = s_userDebtShares[user];
+
+        if (userDebtShares == 0) {
+            return 0;
+        }
+
+        uint256 currentExchangeRate = _getCurrentExchangeRate();
+
+        return (userDebtShares * currentExchangeRate) / PRECISION;
+    }
 
     function calculatePositionRatio(address user) public view returns (uint256) {}
 
