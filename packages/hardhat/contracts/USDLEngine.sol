@@ -94,19 +94,114 @@ contract USDLEngine is Ownable {
         return (userDebtShares * currentExchangeRate) / PRECISION;
     }
 
-    function calculatePositionRatio(address user) public view returns (uint256) {}
+    function calculatePositionRatio(address user) public view returns (uint256) {
+    uint256 debtValue = getCurrentDebtValue(user);
 
-    function _validatePosition(address user) internal view {}
+        if (debtValue == 0) {
+            return type(uint256).max;
+        }
 
-    function mintUSDL(uint256 mintAmount) public {}
+    uint256 collateralValue = calculateCollateralValue(user);
+
+    return (collateralValue * 100) / debtValue;
+    }
+
+    function _validatePosition(address user) internal view {
+        if (calculatePositionRatio(user) < COLLATERAL_RATIO) {
+            revert Engine__UnsafePositionRatio();
+        }
+    }
+
+    function mintUSDL(uint256 mintAmount) public {
+    if (mintAmount == 0) {
+        revert Engine__InvalidAmount();
+    }
+
+    _accrueInterest();
+
+    uint256 shares = _getUSDLToShares(mintAmount);
+
+    if (shares == 0) {
+        revert Engine__InvalidAmount();
+    }
+
+    s_userDebtShares[msg.sender] += shares;
+    totalDebtShares += shares;
+
+    _validatePosition(msg.sender);
+
+    bool success = i_usdl.mintTo(msg.sender, mintAmount);
+    if (!success) {
+        revert Engine__TransferFailed();
+    }
 
     // Checkpoint 5: Accruing Interest & Managing Borrow Rates
     function setBorrowRate(uint256 newRate) external onlyRateController {}
 
     // Checkpoint 6: Repaying Debt & Withdrawing Collateral
-    function repayUpTo(uint256 amount) public {}
+    function repayUpTo(uint256 amount) public {
+        if (amount == 0) {
+            revert Engine__InvalidAmount();
+        }
+    
+        _accrueInterest();
+    
+        uint256 userShares = s_userDebtShares[msg.sender];
+    
+        if (userShares == 0) {
+            revert Engine__InvalidAmount();
+        }
+    
+        uint256 currentExchangeRate = debtExchangeRate;
+        uint256 currentDebt = (userShares * currentExchangeRate) / PRECISION;
+    
+        uint256 actualRepayAmount = amount > currentDebt ? currentDebt : amount;
+    
+        uint256 sharesToBurn;
+    
+        if (actualRepayAmount == currentDebt) {
+            sharesToBurn = userShares;
+            actualRepayAmount = currentDebt;
+        } else {
+            sharesToBurn = (actualRepayAmount * PRECISION) / currentExchangeRate;
+    
+            if (sharesToBurn == 0) {
+                revert Engine__InvalidAmount();
+            }
+    
+            actualRepayAmount = (sharesToBurn * currentExchangeRate) / PRECISION;
+        }
+    
+        s_userDebtShares[msg.sender] -= sharesToBurn;
+        totalDebtShares -= sharesToBurn;
+    
+        i_usdl.burnFrom(msg.sender, actualRepayAmount);
+    
+        emit DebtSharesBurned(msg.sender, actualRepayAmount, sharesToBurn);
+    }
 
-    function withdrawCollateral(uint256 amount) external {}
+    function withdrawCollateral(uint256 amount) external {
+        if (amount == 0) {
+            revert Engine__InvalidAmount();
+        }
+    
+        uint256 userCollateral = s_userCollateral[msg.sender];
+    
+        if (amount > userCollateral) {
+            revert Engine__InsufficientCollateral();
+        }
+    
+        s_userCollateral[msg.sender] = userCollateral - amount;
+    
+        _validatePosition(msg.sender);
+    
+        (bool success, ) = payable(msg.sender).call{value: amount}("");
+        if (!success) {
+            revert Engine__TransferFailed();
+        }
+    
+        emit CollateralWithdrawn(msg.sender, amount, i_oracle.getETHUSDLPrice());
+    }
 
     // Checkpoint 7: Liquidation - Enforcing System Stability
     function isLiquidatable(address user) public view returns (bool) {}
