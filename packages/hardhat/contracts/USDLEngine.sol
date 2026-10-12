@@ -70,9 +70,17 @@ contract USDLEngine is Ownable {
     }
 
     // Checkpoint 2: Depositing Collateral & Understanding Value
-    function addCollateral() public payable {}
+    function addCollateral() public payable {
+        if (msg.value == 0) revert Engine__InvalidAmount();
 
-    function calculateCollateralValue(address user) public view returns (uint256) {}
+        s_userCollateral[msg.sender] += msg.value;
+        emit CollateralAdded(msg.sender, msg.value, i_oracle.getETHUSDLPrice());
+    }
+
+    function calculateCollateralValue(address user) public view returns (uint256) {
+        uint256 collateralAmount = s_userCollateral[user];
+        return (collateralAmount * i_oracle.getETHUSDLPrice()) / PRECISION;
+    }
 
     // Checkpoint 3: Interest Calculation System
     function _getCurrentExchangeRate() internal view returns (uint256) {}
@@ -133,6 +141,7 @@ contract USDLEngine is Ownable {
     bool success = i_usdl.mintTo(msg.sender, mintAmount);
     if (!success) {
         revert Engine__TransferFailed();
+    }
     }
 
     // Checkpoint 5: Accruing Interest & Managing Borrow Rates
