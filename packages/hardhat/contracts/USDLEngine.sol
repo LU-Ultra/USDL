@@ -142,6 +142,7 @@ contract USDLEngine is Ownable {
     if (!success) {
         revert Engine__TransferFailed();
     }
+    }
 
     // Checkpoint 5: Accruing Interest & Managing Borrow Rates
     function setBorrowRate(uint256 newRate) external onlyRateController {}
