@@ -83,11 +83,38 @@ contract USDLEngine is Ownable {
     }
 
     // Checkpoint 3: Interest Calculation System
-    function _getCurrentExchangeRate() internal view returns (uint256) {}
+    function _getCurrentExchangeRate() internal view returns (uint256) {
+        if (totalDebtShares == 0) {
+            return debtExchangeRate;
+        }
 
-    function _accrueInterest() internal {}
+        uint256 timeElapsed = block.timestamp - lastUpdateTime;
+        if (timeElapsed == 0 || borrowRate == 0) {
+            return debtExchangeRate;
+        }
 
-    function _getUSDLToShares(uint256 amount) internal view returns (uint256) {}
+        // The borrowRate unit is basis points, where 100 equals 1%. 
+        // Converting annual interest rate to per-second interest rate：borrowRate / 10000 / SECONDS_PER_YEAR
+        uint256 interestFactor = (borrowRate * timeElapsed * PRECISION) /
+            (10_000 * SECONDS_PER_YEAR);
+
+        return debtExchangeRate + (debtExchangeRate * interestFactor) / PRECISION;
+    }
+
+    function _accrueInterest() internal {
+        if (totalDebtShares == 0) {
+            lastUpdateTime = block.timestamp;
+            return;
+        }
+        uint256 newExchangeRate = _getCurrentExchangeRate();
+        debtExchangeRate = newExchangeRate;
+        lastUpdateTime = block.timestamp;
+    }
+
+    function _getUSDLToShares(uint256 amount) internal view returns (uint256) {
+        uint256 currentExchangeRate = _getCurrentExchangeRate();
+        return (amount * PRECISION) / currentExchangeRate;
+    }
 
     // Checkpoint 4: Minting USDL & Position Health
     function getCurrentDebtValue(address user) public view returns (uint256) {
@@ -145,7 +172,18 @@ contract USDLEngine is Ownable {
     }
 
     // Checkpoint 5: Accruing Interest & Managing Borrow Rates
-    function setBorrowRate(uint256 newRate) external onlyRateController {}
+    function setBorrowRate(uint256 newRate) external onlyRateController {
+        if (newRate > 10_000) {
+            revert Engine__InvalidBorrowRate();
+        }
+
+        // First settle the accrued interest at the old interest rate
+        _accrueInterest();
+
+        borrowRate = newRate;
+
+        emit BorrowRateUpdated(newRate);
+    }
 
     // Checkpoint 6: Repaying Debt & Withdrawing Collateral
     function repayUpTo(uint256 amount) public {
