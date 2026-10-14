@@ -169,12 +169,17 @@ contract USDLEngine is Ownable {
     if (!success) {
         revert Engine__TransferFailed();
     }
+    emit DebtSharesMinted(msg.sender, mintAmount, shares);
     }
 
     // Checkpoint 5: Accruing Interest & Managing Borrow Rates
     function setBorrowRate(uint256 newRate) external onlyRateController {
         if (newRate > 10_000) {
             revert Engine__InvalidBorrowRate();
+        }
+        // Borrow rate must not be lower than savings rate
+        if (newRate < i_staking.savingsRate()) {
+        revert Engine__InvalidBorrowRate();
         }
 
         // First settle the accrued interest at the old interest rate
@@ -251,7 +256,70 @@ contract USDLEngine is Ownable {
     }
 
     // Checkpoint 7: Liquidation - Enforcing System Stability
-    function isLiquidatable(address user) public view returns (bool) {}
+   
+    function isLiquidatable(address user) public view returns (bool) {
+    uint256 debtValue = getCurrentDebtValue(user);
 
-    function liquidate(address user) external {}
+    if (debtValue == 0) {
+        return false;
+    }
+
+    return calculatePositionRatio(user) < COLLATERAL_RATIO;
+    }
+
+    
+
+    function liquidate(address user) external {
+    if (!isLiquidatable(user)) {
+        revert Engine__NotLiquidatable();
+    }
+
+    _accrueInterest();
+
+    uint256 userShares = s_userDebtShares[user];
+    uint256 debtValue = getCurrentDebtValue(user);
+    uint256 collateralAmount = s_userCollateral[user];
+    uint256 price = i_oracle.getETHUSDLPrice();
+
+    if (price == 0 || debtValue == 0) {
+        revert Engine__InvalidAmount();
+    }
+
+    // Calculate the ETH amount corresponding to the debt
+    uint256 baseCollateral = (debtValue * PRECISION) / price;
+
+    // Add the 10% liquidation reward
+    uint256 amountForLiquidator =
+        (baseCollateral * (100 + LIQUIDATOR_REWARD)) / 100;
+
+    // Do not transfer more ETH than the user deposited
+    if (amountForLiquidator > collateralAmount) {
+        amountForLiquidator = collateralAmount;
+    }
+
+    // Burn the liquidator's USDL to repay the debt
+    i_usdl.burnFrom(msg.sender, debtValue);
+
+    // Clear the user's debt shares and collateral
+    s_userDebtShares[user] = 0;
+    totalDebtShares -= userShares;
+    s_userCollateral[user] = 0;
+
+    // Transfer ETH to the liquidator
+    (bool success, ) =
+        payable(msg.sender).call{value: amountForLiquidator}("");
+
+    if (!success) {
+        revert Engine__TransferFailed();
+    }
+
+    emit Liquidation(
+        user,
+        msg.sender,
+        amountForLiquidator,
+        debtValue,
+        price
+    );
+}
+
 }
